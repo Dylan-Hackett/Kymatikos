@@ -1,5 +1,5 @@
 # Project Name
-TARGET = thaumazein
+TARGET = kymatikos
 
 # Library Locations
 LIBDAISY_DIR = lib/libdaisy
@@ -8,7 +8,7 @@ STMLIB_DIR = eurorack/stmlib
 MPR121_DIR = src/platform
 
 # Sources - Define BEFORE including core Makefile
-CPP_SOURCES += src/app/Thaumazein.cpp \
+CPP_SOURCES += src/app/Kymatikos.cpp \
               src/app/Interface.cpp \
               src/dsp/Arpeggiator.cpp \
               src/dsp/AudioProcessor.cpp \

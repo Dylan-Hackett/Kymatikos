@@ -1,5 +1,5 @@
-#ifndef THAUMAZEIN_H_
-#define THAUMAZEIN_H_
+#ifndef KYMATIKOS_H_
+#define KYMATIKOS_H_
 
 #pragma once
 
@@ -44,4 +44,5 @@ extern HardwareManager g_hardware;
 extern ControlsManager g_controls;
 extern AudioEngine g_audio_engine;
 
-#endif // THAUMAZEIN_H_ 
+#endif // KYMATIKOS_H_
+

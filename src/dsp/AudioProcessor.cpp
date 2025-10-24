@@ -1,4 +1,4 @@
-#include "Thaumazein.h"
+#include "Kymatikos.h"
 #include "mpr121_daisy.h"
 #include "AudioConfig.h"
 #include <cmath>

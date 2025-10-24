@@ -1,4 +1,4 @@
-#include "Thaumazein.h"
+#include "Kymatikos.h"
 #include "Arpeggiator.h"
 #include "SynthStateStorage.h"
 #include "AudioConfig.h"
