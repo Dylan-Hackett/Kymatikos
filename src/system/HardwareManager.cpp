@@ -65,7 +65,7 @@ void HardwareManager::InitADCs() {
 
 void HardwareManager::InitTouchSensor() {
     // Attempt to initialize the MPR121 touch sensor
-    thaumazein_hal::Mpr121::Config touch_config;
+    kymatikos_hal::Mpr121::Config touch_config;
     touch_config.Defaults();
 
     if (!touch_sensor_.Init(touch_config)) {

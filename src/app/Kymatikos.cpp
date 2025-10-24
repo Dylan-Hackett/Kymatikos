@@ -52,7 +52,7 @@ void PollTouchSensor() {
     // Recover from any I2C errors on the touch sensor
     if(g_hardware.GetTouchSensor().HasError()) {
         g_hardware.GetTouchSensor().ClearError();
-        thaumazein_hal::Mpr121::Config cfg;
+        kymatikos_hal::Mpr121::Config cfg;
         cfg.Defaults();
         g_hardware.GetTouchSensor().Init(cfg);
         g_hardware.GetTouchSensor().SetThresholds(6, 3);

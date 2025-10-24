@@ -6,9 +6,9 @@
 #include "per/i2c.h"
 
 // Add a namespace to avoid collision with daisy::Mpr121
-namespace thaumazein_hal {
+namespace kymatikos_hal {
 
-using namespace daisy; // Keep daisy namespace accessible within thaumazein_hal for convenience
+using namespace daisy; // Keep daisy namespace accessible within kymatikos_hal for convenience
 
 /// mp
 
@@ -100,6 +100,6 @@ class Mpr121
     void     WriteRegister(uint8_t reg, uint8_t value);
 };
 
-} // namespace thaumazein_hal
+} // namespace kymatikos_hal
 
 #endif 

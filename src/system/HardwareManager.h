@@ -29,7 +29,7 @@ public:
 
     // Hardware access
     daisy::DaisySeed& GetHardware() { return hw_; }
-    thaumazein_hal::Mpr121& GetTouchSensor() { return touch_sensor_; }
+    kymatikos_hal::Mpr121& GetTouchSensor() { return touch_sensor_; }
     daisy::CpuLoadMeter& GetCpuMeter() { return cpu_meter_; }
 
     // ADC Control access
@@ -60,7 +60,7 @@ public:
 private:
     // Hardware
     daisy::DaisySeed hw_;
-    thaumazein_hal::Mpr121 touch_sensor_;
+    kymatikos_hal::Mpr121 touch_sensor_;
     daisy::CpuLoadMeter cpu_meter_;
 
     // 12 ADC Controls

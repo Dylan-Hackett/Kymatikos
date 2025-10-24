@@ -14,9 +14,9 @@ CPP_SOURCES += src/app/Kymatikos.cpp \
               src/dsp/AudioProcessor.cpp \
               src/platform/mpr121_daisy.cpp \
               src/platform/SynthStateStorage.cpp \
-              src/core/HardwareManager.cpp \
-              src/core/ControlsManager.cpp \
-              src/core/AudioEngine.cpp
+              src/system/HardwareManager.cpp \
+              src/system/ControlsManager.cpp \
+              src/system/AudioEngine.cpp
 
 # Add .cc sources for Clouds granular processor
 CC_SOURCES += $(STMLIB_DIR)/dsp/units.cc \
@@ -49,7 +49,7 @@ C_INCLUDES += \
 -I$(MPR121_DIR) \
 -Isrc/app \
 -Isrc/dsp \
--Isrc/core \
+-Isrc/system \
 -Isrc/platform \
 -Isrc/config \
 -I. \

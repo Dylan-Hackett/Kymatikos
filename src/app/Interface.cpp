@@ -32,7 +32,7 @@ static void DebugBlink(int count)
 }
 
 // --- Application-Specific Initialization ---
-// This handles initialization that is specific to the Thaumazein application,
+// This handles initialization that is specific to the Kymatikos application,
 // NOT hardware configuration (which is handled by HardwareManager).
 static void InitializeApplication() {
     // Configure QSPI flash for memory-mapped mode

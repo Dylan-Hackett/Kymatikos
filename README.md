@@ -1,6 +1,6 @@
-# Thaumazein Project Overview
+# Kymatikos Project Overview
 
-Thaumazein is a polyphonic Eurorack voice built on the Daisy Seed.  It combines Plaits-style macro-oscillators, per-voice envelopes, an arpeggiator, and a small effects chain (delay, biquad filters, and freeverb) into a self-contained synth engine.
+Kymatikos is a polyphonic Eurorack voice built on the Daisy Seed.  It combines Plaits-style macro-oscillators, per-voice envelopes, an arpeggiator, and a small effects chain (delay, biquad filters, and freeverb) into a self-contained synth engine.
 
 # Repository and Quick Start
 
@@ -19,7 +19,7 @@ make -C lib/DaisySP -j8
 make program-dfu -j8   # builds; if no device, flashing will fail but build/ artifacts are created
 ```
 
-Artifacts: `build/thaumazein.elf`, `build/thaumazein.bin`, `build/thaumazein.hex`.
+Artifacts: `build/kymatikos.elf`, `build/kymatikos.bin`, `build/kymatikos.hex`.
 
 # Firmware build targets
 
@@ -39,7 +39,7 @@ If either of these words looks wrong the bootloader will stay in DFU.
 ## Project Overview and Tasks
 
 ### Description
-Thaumazein is a polyphonic synthesizer running on the Daisy Seed platform, featuring multiple synthesis engines from Mutable Instruments Plaits, along with effects like delay and arpeggiation. It uses a touch-based interface for control.
+Kymatikos is a polyphonic synthesizer running on the Daisy Seed platform, featuring multiple synthesis engines from Mutable Instruments Plaits, along with effects like delay and arpeggiation. It uses a touch-based interface for control.
 
 ### Current Tasks
 * [x] Integrate Clouds granular texture synthesizer.
@@ -52,7 +52,7 @@ Thaumazein is a polyphonic synthesizer running on the Daisy Seed platform, featu
 ### Codebase Diagram
 ```mermaid
 graph TD
-    A[Main Loop: Thaumazein.cpp] --> B(InitializeSynth: Interface.cpp);
+    A[Main Loop: Kymatikos.cpp] --> B(InitializeSynth: Interface.cpp);
     A --> C{AudioCallback: AudioProcessor.cpp};
     B --> D[Hardware Init: hw.Init, SetAudioSampleRate, SetAudioBlockSize];
     B --> E[Controls Init: AnalogControl ADCs];
@@ -69,8 +69,8 @@ graph TD
     C --> P[ApplyEffectsAndOutput: AudioProcessor.cpp];
     P --> X[Clouds Processing: clouds::GranularProcessor];
     X --> Q[EchoDelay Process];
-    A --> R[PollTouchSensor: Thaumazein.cpp];
-    A --> S[UpdateDisplay: Thaumazein.cpp];
+    A --> R[PollTouchSensor: Kymatikos.cpp];
+    A --> S[UpdateDisplay: Kymatikos.cpp];
     S --> T[cpu_meter readings];
 ```
 
@@ -120,7 +120,7 @@ To change the audio sample rate of the project, the following modifications are 
             const float attack = NoteToFrequency(p.note) * float(size) * 2.0f; // Use actual block 'size'
             ```
 
-5.  **Project `SAMPLE_RATE` Macro (`Thaumazein.h`)**:
+5.  **Project `SAMPLE_RATE` Macro (`Kymatikos.h`)**:
     *   Ensure the global `SAMPLE_RATE` macro (if used by other parts of your code, like `Polyphony.cpp`) correctly reflects the new sample rate. It's best to have this macro use the runtime `sample_rate` variable:
         ```cpp
         // extern float sample_rate; // Declaration of the runtime variable
@@ -130,7 +130,7 @@ To change the audio sample rate of the project, the following modifications are 
 6.  **Voice Parameter Initialization (`Polyphony.cpp`)**:
     *   In `PolyphonyEngine::InitVoiceParameters()`, ensure that `voice_envelopes_[i].Init()` is called with the correct runtime `sample_rate_val` derived from the hardware.
         ```cpp
-        // float sample_rate_val = SAMPLE_RATE; // This would use the macro from Thaumazein.h
+        // float sample_rate_val = SAMPLE_RATE; // This would use the macro from Kymatikos.h
         float sample_rate_val = hw_ptr_->AudioSampleRate(); // Or pass sample_rate directly
         // ...
         voice_envelopes_[i].Init(sample_rate_val);
