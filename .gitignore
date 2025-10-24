@@ -1,0 +1,28 @@
+# Build directories
+build/
+build*/
+
+# Build artifacts
+*.o
+*.d
+*.lst
+*.elf
+*.bin
+*.hex
+*.map
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+Kymatikos/
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# QSPI dumps (binary firmware dumps)
+qspi-dump-*.bin
