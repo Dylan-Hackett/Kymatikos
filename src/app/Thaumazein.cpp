@@ -4,7 +4,6 @@
 using namespace daisy;
 using namespace daisysp;
 using namespace stmlib;
-using namespace infrasonic;
 
 // Volatile variables now managed by ControlsManager (see g_controls)
 

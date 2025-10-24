@@ -13,7 +13,6 @@
 using namespace daisy;
 using namespace daisysp;
 using namespace stmlib;
-using namespace infrasonic;
 
 // --- Global Manager Instances (replaces 48+ individual globals) ---
 HardwareManager g_hardware;

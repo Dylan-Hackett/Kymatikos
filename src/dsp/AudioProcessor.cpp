@@ -8,7 +8,6 @@
 using namespace daisy;
 using namespace daisysp;
 using namespace stmlib;
-using namespace infrasonic;
 
 // Helper function declarations
 void UpdateCloudsParameters(const ControlsManager::ControlSnapshot& controls_snapshot,

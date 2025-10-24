@@ -2,6 +2,25 @@
 
 Thaumazein is a polyphonic Eurorack voice built on the Daisy Seed.  It combines Plaits-style macro-oscillators, per-voice envelopes, an arpeggiator, and a small effects chain (delay, biquad filters, and freeverb) into a self-contained synth engine.
 
+# Repository and Quick Start
+
+- Repo: https://github.com/Dylan-Hackett/Kymatikos
+- SSH: git@github.com:Dylan-Hackett/Kymatikos.git
+
+Prereqs: DaisyToolchain (arm-none-eabi, make), dfu-util.
+
+Quick start:
+
+```
+git clone git@github.com:Dylan-Hackett/Kymatikos.git
+cd Kymatikos
+make -C lib/libdaisy -j8
+make -C lib/DaisySP -j8
+make program-dfu -j8   # builds; if no device, flashing will fail but build/ artifacts are created
+```
+
+Artifacts: `build/thaumazein.elf`, `build/thaumazein.bin`, `build/thaumazein.hex`.
+
 # Firmware build targets
 
 * **`make flash-stub`** – build a tiny internal-flash stub that sets up QSPI XIP then jumps to the main app.
