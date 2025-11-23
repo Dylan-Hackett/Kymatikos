@@ -209,19 +209,19 @@ void ReadKnobValues() {
     const float cv5_raw = g_hardware.GetTimbreKnob().Value();                // ADC 4
     const float cv5 = daisysp::fclamp(cv5_raw, 0.0f, 1.0f);
     float clouds_position = cv5;
-    float clouds_size     = cv5;
     snapshot.position_knob = cv5_raw;
 
     const float cv6_raw = g_hardware.GetHarmonicsKnob().Value();              // ADC 5
     const float cv6 = daisysp::fclamp(cv6_raw, 0.0f, 1.0f);
     float clouds_density = cv6;
     float clouds_texture = cv6;
+    float clouds_size    = cv6;
     snapshot.density_knob = cv6_raw;
 
     const float raw_blend = g_hardware.GetMorphKnob().Value();                  // ADC 6
     const float blend_value = daisysp::fclamp(1.0f - raw_blend, 0.0f, 1.0f);
     float clouds_feedback = daisysp::fclamp(blend_value, 0.0f, 0.25f);
-    float clouds_reverb = blend_value;
+    float clouds_reverb = blend_value >= 0.7f ? 1.0f : (blend_value / 0.7f);
     float clouds_dry_wet = blend_value;
     snapshot.blend_knob = blend_value;
 

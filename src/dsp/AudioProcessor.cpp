@@ -10,6 +10,8 @@ using namespace daisysp;
 
 namespace
 {
+constexpr float kInputGain = 2.5f;
+
 FloatFrame g_clouds_in[BLOCK_SIZE];
 FloatFrame g_clouds_out[BLOCK_SIZE];
 
@@ -99,6 +101,8 @@ void ProcessAudioThroughClouds(AudioHandle::InterleavingInputBuffer in,
         const size_t idx = frame * 2;
         float input_l = in ? in[idx] : 0.0f;
         float input_r = in ? in[idx + 1] : input_l;
+        input_l *= kInputGain;
+        input_r *= kInputGain;
         block_peak = fmaxf(block_peak, fmaxf(fabsf(input_l), fabsf(input_r)));
 
         g_clouds_in[frame].l = daisysp::fclamp(input_l, -1.0f, 1.0f);
