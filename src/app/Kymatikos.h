@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "daisy_seed.h"
+#include "daisy_patch_sm.h"
 #include "daisysp.h"
 #include "mpr121_daisy.h"
 #include "util/CpuLoadMeter.h"
@@ -14,9 +14,9 @@
 #include "ControlsManager.h"
 #include "AudioEngine.h"
 
-// Clouds Integration
-#include "clouds/dsp/granular_processor.h"
-#include "clouds/dsp/parameters.h"
+// Clouds Integration (Nimbus SM port)
+#include "Nimbus_SM/dsp/granular_processor.h"
+#include "Nimbus_SM/dsp/parameters.h"
 // End Clouds Integration
 
 // NOTE: using namespace directives removed from header to avoid namespace pollution
@@ -44,5 +44,7 @@ extern HardwareManager g_hardware;
 extern ControlsManager g_controls;
 extern AudioEngine g_audio_engine;
 
-#endif // KYMATIKOS_H_
+extern const float kArabicMaqamScale[12];
+float PadIndexToVoltage(int pad_index);
 
+#endif // KYMATIKOS_H_

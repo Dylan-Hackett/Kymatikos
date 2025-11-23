@@ -7,11 +7,32 @@
 // --- Namespace imports (local to this implementation file) ---
 using namespace daisy;
 using namespace daisysp;
-using namespace stmlib;
+
+namespace
+{
+FloatFrame g_clouds_in[BLOCK_SIZE];
+FloatFrame g_clouds_out[BLOCK_SIZE];
+
+void UpdateCloudsParameters(GranularProcessorClouds& processor)
+{
+    const auto& controls = g_controls.GetAudioControlSnapshot();
+    Parameters* params = processor.mutable_parameters();
+
+    params->position      = controls.clouds_position;
+    params->density       = controls.clouds_density;
+    params->size          = controls.clouds_size;
+    params->texture       = controls.clouds_texture;
+    params->stereo_spread = 0.5f;
+    params->feedback      = controls.clouds_feedback;
+    params->reverb        = controls.clouds_reverb;
+    params->pitch         = controls.clouds_pitch;
+    params->dry_wet       = controls.clouds_dry_wet;
+    params->freeze        = false;
+    params->trigger       = false;
+}
+} // namespace
 
 // Helper function declarations
-void UpdateCloudsParameters(const ControlsManager::ControlSnapshot& controls_snapshot,
-                            float touch_cv);
 void ProcessAudioThroughClouds(AudioHandle::InterleavingInputBuffer in,
                                AudioHandle::InterleavingOutputBuffer out,
                                size_t size);
@@ -21,6 +42,8 @@ void UpdateArpeggiator();
 // Touch state tracking for keyboard logic
 static uint16_t last_touch_state = 0;
 
+
+
 void AudioCallback(AudioHandle::InterleavingInputBuffer in,
                  AudioHandle::InterleavingOutputBuffer out,
                  size_t size) {
@@ -29,20 +52,12 @@ void AudioCallback(AudioHandle::InterleavingInputBuffer in,
 
     // Sync control snapshot from UI thread
     g_controls.SyncAudioControlSnapshot();
-    const auto& controls_snapshot = g_controls.GetAudioControlSnapshot();
-    const float touch_cv = g_controls.GetTouchCVValue();
 
     // Update arpeggiator state (keyboard logic preserved)
     UpdateArpeggiator();
 
-    // Update Clouds parameters based on knobs and keyboard/touch input
-    UpdateCloudsParameters(controls_snapshot, touch_cv);
-
-    // Process audio input through Clouds and output
+    // Process audio input through simplified DSP path and output
     ProcessAudioThroughClouds(in, out, size);
-
-    // Clouds Integration: Call Prepare() for grain buffer preparation
-    g_audio_engine.GetCloudsProcessor().Prepare();
 
     g_hardware.GetCpuMeter().OnBlockEnd();
 }
@@ -69,74 +84,41 @@ void UpdateArpeggiator() {
     g_controls.WasArpOn() = current_arp_on;
 }
 
-void UpdateCloudsParameters(const ControlsManager::ControlSnapshot& controls_snapshot,
-                            float touch_cv) {
-    clouds::Parameters* parameters = g_audio_engine.GetCloudsProcessor().mutable_parameters();
-    if(!parameters) {
-        return;
-    }
-
-    // Modulate morph with touch pressure (keyboard interaction preserved)
-    float modulated_morph = 0.25f * controls_snapshot.morph_knob + 0.75f * touch_cv;
-    modulated_morph = fclamp(modulated_morph, 0.0f, 1.0f);
-
-    // Map knobs and touch to Clouds parameters
-    // These mappings can be customized based on desired keyboard control behavior
-    parameters->pitch = modulated_morph;
-    parameters->texture = controls_snapshot.pitch;
-    parameters->density = controls_snapshot.delay_time;
-    parameters->position = touch_cv;  // Touch pressure controls grain position
-    parameters->size = controls_snapshot.harm_knob;
-    parameters->dry_wet = controls_snapshot.delay_mix_feedback;
-    parameters->feedback = 0.1f;
-    parameters->reverb = controls_snapshot.delay_mix_feedback;
-    parameters->stereo_spread = controls_snapshot.delay_mix_feedback;
-    parameters->freeze = (controls_snapshot.mod_wheel > 0.3f);
-}
-
 void ProcessAudioThroughClouds(AudioHandle::InterleavingInputBuffer in,
                                AudioHandle::InterleavingOutputBuffer out,
                                size_t size) {
-    static clouds::ShortFrame input_frames[BLOCK_SIZE];
-    static clouds::ShortFrame output_frames[BLOCK_SIZE];
+    auto& processor = g_audio_engine.GetCloudsProcessor();
+    UpdateCloudsParameters(processor);
 
-    // Convert input audio to Clouds format (16-bit signed stereo frames)
-    for (size_t i = 0; i < BLOCK_SIZE; ++i) {
-        // Read from stereo input and convert to int16 range
-        // Note: 'in' is an interleaved stereo buffer, so in[i*2] = L, in[i*2+1] = R
-        float inL = (i*2 < size) ? in[i*2] : 0.0f;
-        float inR = (i*2+1 < size) ? in[i*2+1] : 0.0f;
+    float block_peak = 0.0f;
 
-        // Convert to int16 range (-32768 to 32767)
-        float scaledL = inL * 32768.0f;
-        float scaledR = inR * 32768.0f;
+    const size_t total_frames = size / 2;
+    const size_t frame_count  = std::min(total_frames, static_cast<size_t>(BLOCK_SIZE));
 
-        // Clamp to int16 range
-        if (scaledL > 32767.f) scaledL = 32767.f;
-        if (scaledL < -32768.f) scaledL = -32768.f;
-        if (scaledR > 32767.f) scaledR = 32767.f;
-        if (scaledR < -32768.f) scaledR = -32768.f;
+    for(size_t frame = 0; frame < frame_count; ++frame) {
+        const size_t idx = frame * 2;
+        float input_l = in ? in[idx] : 0.0f;
+        float input_r = in ? in[idx + 1] : input_l;
+        block_peak = fmaxf(block_peak, fmaxf(fabsf(input_l), fabsf(input_r)));
 
-        input_frames[i].l = static_cast<int16_t>(scaledL);
-        input_frames[i].r = static_cast<int16_t>(scaledR);
+        g_clouds_in[frame].l = daisysp::fclamp(input_l, -1.0f, 1.0f);
+        g_clouds_in[frame].r = daisysp::fclamp(input_r, -1.0f, 1.0f);
     }
 
-    // Process through Clouds granular engine
-    g_audio_engine.GetCloudsProcessor().Process(input_frames, output_frames, BLOCK_SIZE);
+    processor.Process(g_clouds_in, g_clouds_out, frame_count);
 
-    // Convert Clouds output to float and write to output buffer
-    for (size_t i = 0; i < size; i += 2) {
-        // Convert from int16 to float range [-1.0, 1.0]
-        float outL = static_cast<float>(output_frames[i/2].l) / 32768.0f;
-        float outR = static_cast<float>(output_frames[i/2].r) / 32768.0f;
+    g_controls.GetInputPeakLevel() = block_peak;
 
-        // Apply master volume
-        outL *= MASTER_VOLUME;
-        outR *= MASTER_VOLUME;
+    for(size_t frame = 0; frame < frame_count; ++frame) {
+        const size_t idx = frame * 2;
+        out[idx]     = g_clouds_out[frame].l;
+        out[idx + 1] = g_clouds_out[frame].r;
+    }
 
-        // Write stereo output
-        out[i]   = outL;
-        out[i+1] = outR;
+    for(size_t frame = frame_count; frame < total_frames; ++frame) {
+        const size_t idx = frame * 2;
+        out[idx]     = 0.0f;
+        out[idx + 1] = 0.0f;
     }
 
     UpdatePerformanceMonitors(size, out);

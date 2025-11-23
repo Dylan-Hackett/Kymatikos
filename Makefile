@@ -4,9 +4,12 @@ TARGET = kymatikos
 # Library Locations
 LIBDAISY_DIR = lib/libdaisy
 DAISYSP_DIR = lib/DaisySP
-STMLIB_DIR = eurorack/stmlib
+NIMBUS_DIR = eurorack/Nimbus_SM
 MPR121_DIR = src/platform
 
+ifeq ($(BLINK_TEST),1)
+CPP_SOURCES = src/app/BlinkTest.cpp
+else
 # Sources - Define BEFORE including core Makefile
 CPP_SOURCES += src/app/Kymatikos.cpp \
               src/app/Interface.cpp \
@@ -16,33 +19,16 @@ CPP_SOURCES += src/app/Kymatikos.cpp \
               src/platform/SynthStateStorage.cpp \
               src/system/HardwareManager.cpp \
               src/system/ControlsManager.cpp \
-              src/system/AudioEngine.cpp
+             src/system/AudioEngine.cpp \
+             $(NIMBUS_DIR)/resources.cpp
 
-# Add .cc sources for Clouds granular processor
-CC_SOURCES += $(STMLIB_DIR)/dsp/units.cc \
-              $(STMLIB_DIR)/utils/random.cc
-CC_SOURCES += $(wildcard eurorack/clouds/dsp/*.cc)
-CC_SOURCES += $(wildcard eurorack/clouds/dsp/pvoc/*.cc)
-CC_SOURCES += eurorack/clouds/clouds_resources.cc
-CC_SOURCES += $(STMLIB_DIR)/dsp/atan.cc
-
-# Define a macro to create a do-nothing rule for intermediate targets
-# This prevents Make's implicit linking rule from firing for individual .o files from .cc sources
-# Attempt 2: Simplified empty recipe
-define PREVENT_IMPLICIT_LINK_RULE_SIMPLE
-$(BUILD_DIR)/$(1):
-	@# Explicitly doing nothing for intermediate target $$@ (empty recipe)
-endef
-
-# Generate these rules for each .cc file basename
-$(foreach basename,$(notdir $(CC_SOURCES:.cc=)),$(eval $(call PREVENT_IMPLICIT_LINK_RULE_SIMPLE,$(basename))))
+CPP_SOURCES += $(wildcard $(NIMBUS_DIR)/dsp/*.cpp)
+CPP_SOURCES += $(wildcard $(NIMBUS_DIR)/dsp/pvoc/*.cpp)
 
 # Define DaisySP sources *before* including core Makefile
 DAISYSP_SOURCES += $(wildcard $(DAISYSP_DIR)/Source/*.cpp)
 DAISYSP_SOURCES += $(wildcard $(DAISYSP_DIR)/Source/*/*.cpp)
-
-# Define vpath for .cc sources BEFORE including core Makefile
-vpath %.cc $(sort $(dir $(CC_SOURCES)))
+endif
 
 # Define Includes BEFORE including core Makefile
 C_INCLUDES += \
@@ -54,15 +40,18 @@ C_INCLUDES += \
 -Isrc/config \
 -I. \
 -Iresources \
+-I$(NIMBUS_DIR) \
+-I$(NIMBUS_DIR)/dsp \
+-I$(NIMBUS_DIR)/dsp/fx \
+-I$(NIMBUS_DIR)/dsp/pvoc \
 -Ieurorack \
 -I../.. \
 -I$(LIBDAISY_DIR)/Drivers/CMSIS_5/CMSIS/Core/Include \
 -I$(LIBDAISY_DIR)/Drivers/CMSIS-Device/ST/STM32H7xx/Include \
--I$(LIBDAISY_DIR)/Drivers/STM32H7xx_HAL_Driver/Inc \
--I$(STMLIB_DIR)/third_party/STM
+-I$(LIBDAISY_DIR)/Drivers/STM32H7xx_HAL_Driver/Inc
 
 # Hardware target
-HWDEFS = -DSEED
+HWDEFS = -DPATCH_SM
 
 # Ensure build is treated as boot application (code executes from QSPI)
 C_DEFS += -DBOOT_APP
@@ -91,15 +80,6 @@ include $(SYSTEM_FILES_DIR)/Makefile # Include core makefile
 
 # Ensure 'all' target only builds the final elf
 # all: $(BUILD_DIR)/$(TARGET).elf # COMMENTED OUT TO ALLOW CORE MAKEFILE TO BUILD .bin
-
-# Add .cc source files to the OBJECTS list defined by the core makefile
-OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(CC_SOURCES:.cc=.o)))
-
-# Add the rule for compiling .cc files
-# This pattern should match the .c/.cpp rules in the core Makefile
-$(BUILD_DIR)/%.o: %.cc $(MAKEFILE_LIST) | $(BUILD_DIR)
-	@echo Compiling $<
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c $< -o $@ $(DEPFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.cc=.lst))
 
 # Explicitly override the linker rule AFTER OBJECTS is fully populated
 $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile
@@ -147,4 +127,15 @@ program-boot:
 .PHONY: program-dfu
 program-dfu: all program-app
 
-.PHONY: flash-stub flash-app program-sram
+.PHONY: flash-stub flash-app program-sram blink-test blink-flash
+
+# Minimal blink + print test firmware (build only)
+blink-test:
+	$(MAKE) clean
+	$(MAKE) BLINK_TEST=1 all
+
+# Build and flash the blink test image to QSPI
+blink-flash:
+	$(MAKE) clean
+	$(MAKE) BLINK_TEST=1 all
+	$(MAKE) BLINK_TEST=1 program-app

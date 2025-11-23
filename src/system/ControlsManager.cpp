@@ -12,6 +12,7 @@ ControlsManager::ControlsManager()
       control_write_index_(0),
       update_display_(false),
       smoothed_output_level_(0.0f),
+      input_peak_level_(0.0f),
       engine_retrigger_phase_(0),
       was_arp_on_(false) {
     // Initialize arrays to zero

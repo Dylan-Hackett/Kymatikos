@@ -1,7 +1,7 @@
 #ifndef ARPEGGIATOR_H
 #define ARPEGGIATOR_H
 
-#include "daisy_seed.h"
+#include "daisy.h"
 #include "daisysp.h"
 #include <functional>
 // #include <vector>  // REMOVED - replaced with fixed-size array for RT safety

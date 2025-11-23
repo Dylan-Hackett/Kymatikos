@@ -1,5 +1,5 @@
 #include "SynthStateStorage.h"
-#include "daisy_seed.h"
+#include "daisy.h"
 #include "system.h"
 
 using namespace daisy;

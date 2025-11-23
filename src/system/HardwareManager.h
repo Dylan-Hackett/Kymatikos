@@ -1,7 +1,7 @@
 #ifndef HARDWARE_MANAGER_H
 #define HARDWARE_MANAGER_H
 
-#include "daisy_seed.h"
+#include "daisy_patch_sm.h"
 #include "mpr121_daisy.h"
 #include "util/CpuLoadMeter.h"
 
@@ -10,7 +10,7 @@
 
 /**
  * HardwareManager encapsulates all hardware-related state:
- * - DaisySeed hardware
+ * - Daisy Patch SM hardware
  * - Touch sensor (MPR121)
  * - 12 ADC controls (knobs/pads)
  * - 12 LED GPIOs
@@ -28,7 +28,7 @@ public:
     void Init();
 
     // Hardware access
-    daisy::DaisySeed& GetHardware() { return hw_; }
+    daisy::patch_sm::DaisyPatchSM& GetHardware() { return hw_; }
     kymatikos_hal::Mpr121& GetTouchSensor() { return touch_sensor_; }
     daisy::CpuLoadMeter& GetCpuMeter() { return cpu_meter_; }
 
@@ -49,6 +49,9 @@ public:
     // LED access
     daisy::GPIO* GetTouchLEDs() { return touch_leds_; }
     daisy::GPIO& GetTouchLED(int index) { return touch_leds_[index]; }
+    void SetTouchLEDs(bool state);
+    void SetGateOut2(bool state);
+    void SetPitchCvVoltage(float volts);
 
     // Touch sensor state (returns reference for backward compatibility with assignment)
     bool& IsTouchSensorPresent() { return touch_sensor_present_; }
@@ -59,7 +62,7 @@ public:
 
 private:
     // Hardware
-    daisy::DaisySeed hw_;
+    daisy::patch_sm::DaisyPatchSM hw_;
     kymatikos_hal::Mpr121 touch_sensor_;
     daisy::CpuLoadMeter cpu_meter_;
 
@@ -79,6 +82,7 @@ private:
 
     // 12 Touch LEDs
     daisy::GPIO touch_leds_[12];
+    daisy::GPIO gate_out2_;
 
     // State
     bool touch_sensor_present_;
@@ -89,6 +93,7 @@ private:
     void InitADCs();
     void InitTouchSensor();
     void InitLEDs();
+    void InitGateOutputs();
 };
 
 #endif // HARDWARE_MANAGER_H

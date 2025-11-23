@@ -3,6 +3,7 @@
 #include "SynthStateStorage.h"
 #include "AudioConfig.h"
 #include <algorithm>
+#include "hid/logger.h"
 
 // --- Manager Includes ---
 #include "HardwareManager.h"
@@ -12,7 +13,6 @@
 // --- Namespace imports (local to this implementation file) ---
 using namespace daisy;
 using namespace daisysp;
-using namespace stmlib;
 
 // --- Global Manager Instances (replaces 48+ individual globals) ---
 HardwareManager g_hardware;
@@ -48,19 +48,19 @@ static void InitializeApplication() {
 void InitializeSynth() {
     // Application-specific initialization (QSPI, VTOR)
     InitializeApplication();
-    DebugBlink(1);
 
-    // Hardware initialization (DaisySeed, ADCs, touch sensor, LEDs, CPU meter)
+    // Bring up USB logging before hardware init so early prints are visible.
+    // Hardware initialization (Patch SM platform, ADCs, touch sensor, LEDs, CPU meter)
     g_hardware.Init();
-    DebugBlink(2);
+    DebugBlink(1);
 
     // Controls initialization (arpeggiator and control state)
     g_controls.Init(g_hardware.GetSampleRate());
-    DebugBlink(3);
+    DebugBlink(2);
 
     // Audio engine initialization (Clouds processor only)
     g_audio_engine.Init(&g_hardware.GetHardware());
-    DebugBlink(4);
+    DebugBlink(3);
 
     // Setup arpeggiator callback for LED feedback
     // Note: Arpeggiator is now used to modulate Clouds parameters rhythmically
@@ -70,13 +70,13 @@ void InitializeSynth() {
         g_controls.GetArpLEDTimestamps()[11 - pad_idx] = g_hardware.GetHardware().system.GetNow();
         // TODO: Could modulate Clouds parameters here based on arp triggers
     });
-    DebugBlink(5);
+    DebugBlink(4);
 
     g_hardware.GetHardware().StartLog(false); // Start log immediately (non-blocking)
-    DebugBlink(6);
+    DebugBlink(5);
 
     g_hardware.GetHardware().StartAudio(AudioCallback);
-    DebugBlink(7);
+    DebugBlink(6);
 
     g_hardware.GetHardware().PrintLine("Clouds Granular Processor - Ready");
     char settings[64];
@@ -127,6 +127,10 @@ void UpdateLED() {
     // LED heartbeat - blinks to indicate system is running
     bool led_on = (System::GetNow() % 1000) < 500;
     g_hardware.GetHardware().SetLed(led_on);
+    if(!g_hardware.IsTouchSensorPresent()) {
+        // Touch controller missing: blink all touch LEDs so they're not stuck on.
+        g_hardware.SetTouchLEDs(led_on);
+    }
 }
 
 // Function for Arpeggiator Toggle Pad
@@ -202,11 +206,38 @@ void ReadKnobValues() {
     snapshot.delay_mix_feedback = g_hardware.GetDelayMixFeedbackKnob().Value(); // ADC 1
     snapshot.env_release = g_hardware.GetEnvReleaseKnob().Value();              // ADC 2
     snapshot.env_attack = g_hardware.GetEnvAttackKnob().Value();                // ADC 3
-    snapshot.timbre_knob = g_hardware.GetTimbreKnob().Value();                  // ADC 4
-    snapshot.harm_knob = g_hardware.GetHarmonicsKnob().Value();                 // ADC 5
-    snapshot.morph_knob = g_hardware.GetMorphKnob().Value();                    // ADC 6
+    const float cv5_raw = g_hardware.GetTimbreKnob().Value();                // ADC 4
+    const float cv5 = daisysp::fclamp(cv5_raw, 0.0f, 1.0f);
+    float clouds_position = cv5;
+    float clouds_size     = cv5;
+    snapshot.position_knob = cv5_raw;
+
+    const float cv6_raw = g_hardware.GetHarmonicsKnob().Value();              // ADC 5
+    const float cv6 = daisysp::fclamp(cv6_raw, 0.0f, 1.0f);
+    float clouds_density = cv6;
+    float clouds_texture = cv6;
+    snapshot.density_knob = cv6_raw;
+
+    const float raw_blend = g_hardware.GetMorphKnob().Value();                  // ADC 6
+    const float blend_value = daisysp::fclamp(1.0f - raw_blend, 0.0f, 1.0f);
+    float clouds_feedback = daisysp::fclamp(blend_value, 0.0f, 0.25f);
+    float clouds_reverb = blend_value;
+    float clouds_dry_wet = blend_value;
+    snapshot.blend_knob = blend_value;
+
+    const float mod_wheel = g_hardware.GetModWheel().Value();                      // ADC 11
+    snapshot.mod_wheel = mod_wheel;
+    float clouds_pitch = daisysp::fclamp((mod_wheel * 2.0f - 1.0f) * 12.0f, -12.0f, 12.0f);
+
+    snapshot.clouds_position = clouds_position;
+    snapshot.clouds_size = clouds_size;
+    snapshot.clouds_density = clouds_density;
+    snapshot.clouds_texture = clouds_texture;
+    snapshot.clouds_feedback = clouds_feedback;
+    snapshot.clouds_reverb = clouds_reverb;
+    snapshot.clouds_dry_wet = clouds_dry_wet;
+    snapshot.clouds_pitch = clouds_pitch;
     snapshot.pitch = g_hardware.GetPitchKnob().Value();                         // ADC 7
-    snapshot.mod_wheel = g_hardware.GetModWheel().Value();                      // ADC 11
 
     g_controls.UpdateControlSnapshot(snapshot);
 }

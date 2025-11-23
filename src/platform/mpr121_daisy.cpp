@@ -1,5 +1,6 @@
 #include "mpr121_daisy.h"
-#include "daisy_seed.h" // For System::Delay, though ideally this cpp wouldn't know about System
+#include "daisy.h" // For System::Delay, though ideally this cpp wouldn't know about System
+#include "hid/logger.h"
 
 // Note: Error handling (SetTransportErr) is a bit basic, just accumulates.
 
@@ -14,8 +15,10 @@ bool kymatikos_hal::Mpr121::Init(const kymatikos_hal::Mpr121::Config& config)
     WriteRegister(MPR121_SOFTRESET, 0x63);
     daisy::System::Delay(1); // Allow time for reset
 
-    if(ReadRegister8(MPR121_CONFIG2) != 0x24) // Check for a known post-reset value
+    auto cfg2 = ReadRegister8(MPR121_CONFIG2);
+    if(cfg2 != 0x24) // Check for a known post-reset value
     {
+        daisy::Logger<>::PrintLine("MPR121: CONFIG2 mismatch (0x%02X)", cfg2);
         SetTransportErr(true);
         return false;
     }

@@ -3,7 +3,31 @@
 // --- Namespace imports (local to this implementation file) ---
 using namespace daisy;
 using namespace daisysp;
-using namespace stmlib;
+
+const float kArabicMaqamScale[12] = {
+    0.0f,
+    2.0f,
+    4.0f,
+    7.0f,
+    9.0f,
+    12.0f,
+    14.0f,
+    16.0f,
+    19.0f,
+    21.0f,
+    24.0f,
+    26.0f,
+};
+
+float PadIndexToVoltage(int pad_index)
+{
+    if(pad_index < 0)
+        return 0.0f;
+    constexpr int kCenterPad = 6;
+    constexpr float kBaseVoltage = 2.5f;
+    float pitch_offset = kArabicMaqamScale[pad_index] - kArabicMaqamScale[kCenterPad];
+    return kBaseVoltage + (pitch_offset / 12.0f);
+}
 
 // Volatile variables now managed by ControlsManager (see g_controls)
 
@@ -25,6 +49,35 @@ void UpdateDisplay() {
         // Engine Info
         int current_engine_idx = g_controls.GetCurrentEngineIndex();
         pos += snprintf(msg + pos, sizeof(msg) - pos, "Engine: %d (%s)\n", current_engine_idx, (current_engine_idx <= 3) ? "Poly-4" : "Mono");
+        pos += snprintf(msg + pos, sizeof(msg) - pos, "InLvl: %d\n", static_cast<int>(g_controls.GetInputPeakLevel() * 1000.0f));
+        pos += snprintf(msg + pos, sizeof(msg) - pos, "Touch: %03X (%s)\n",
+                        g_controls.GetCurrentTouchState(),
+                        g_hardware.IsTouchSensorPresent() ? "OK" : "MISS");
+
+        const auto& control_snapshot = g_controls.GetLatestControlSnapshot();
+        int cv5 = static_cast<int>(control_snapshot.position_knob * 1000.0f);
+        int cv6 = static_cast<int>(control_snapshot.density_knob * 1000.0f);
+        int cv7 = static_cast<int>(control_snapshot.blend_knob * 1000.0f);
+        int raw7 = static_cast<int>(g_hardware.GetMorphKnob().GetRawFloat() * 1000.0f);
+        int pos_val = static_cast<int>(control_snapshot.clouds_position * 1000.0f);
+        int size_val = static_cast<int>(control_snapshot.clouds_size * 1000.0f);
+        int density_val = static_cast<int>(control_snapshot.clouds_density * 1000.0f);
+        int texture_val = static_cast<int>(control_snapshot.clouds_texture * 1000.0f);
+        int feedback_val = static_cast<int>(control_snapshot.clouds_feedback * 1000.0f);
+        int reverb_val = static_cast<int>(control_snapshot.clouds_reverb * 1000.0f);
+        pos += snprintf(msg + pos,
+                        sizeof(msg) - pos,
+                        "CV5:%03d CV6:%03d CV7:%03d Raw7:%03d\nPos:%03d Size:%03d Dens:%03d Text:%03d Fdbk:%03d Rev:%03d\n",
+                        cv5,
+                        cv6,
+                        cv7,
+                        raw7,
+                        pos_val,
+                        size_val,
+                        density_val,
+                        texture_val,
+                        feedback_val,
+                        reverb_val);
 
         // Only show ADC values 8-11
         pos += snprintf(msg + pos, sizeof(msg) - pos, "ADC Values (8-11):\n");
@@ -45,8 +98,15 @@ void UpdateDisplay() {
 
 // Poll the touch sensor and update shared variables
 void PollTouchSensor() {
+    static bool last_gate_state = false;
+    static int last_pad_index = -1;
     if(!g_hardware.IsTouchSensorPresent()) {
         // Touch sensor unavailable – nothing to poll
+        if(last_gate_state) {
+            g_hardware.SetGateOut2(false);
+            last_gate_state = false;
+        }
+        last_pad_index = -1;
         return;
     }
     // Recover from any I2C errors on the touch sensor
@@ -58,6 +118,22 @@ void PollTouchSensor() {
         g_hardware.GetTouchSensor().SetThresholds(6, 3);
     }
     uint16_t touched = g_hardware.GetTouchSensor().Touched();
+    bool gate_state = touched != 0;
+    if(gate_state != last_gate_state) {
+        g_hardware.SetGateOut2(gate_state);
+        last_gate_state = gate_state;
+    }
+
+    if(touched != 0) {
+        for(int i = 11; i >= 0; --i) {
+            if(touched & (1 << i)) {
+                last_pad_index = i;
+                break;
+            }
+        }
+    }
+    g_hardware.SetPitchCvVoltage(PadIndexToVoltage(last_pad_index));
+
     g_controls.GetCurrentTouchState() = touched;
 
     // Update touch pad LEDs with touch and ARP blink
@@ -119,9 +195,12 @@ void PollTouchSensor() {
 
 int main(void) {
     InitializeSynth();
+    g_hardware.GetHardware().PrintLine("Kymatikos booted.");
 
     uint32_t lastPoll = g_hardware.GetHardware().system.GetNow();  // Track last poll time
     uint32_t lastUIUpdate = g_hardware.GetHardware().system.GetNow();  // Track last UI processing
+    uint32_t lastHeartbeat = lastPoll;
+    bool heartbeat_state = false;
 
     // Main Loop
     while (1) {
@@ -133,10 +212,36 @@ int main(void) {
             ProcessControls();
             ReadKnobValues();
 
+            static uint32_t last_knob_log = 0;
+            const auto& control_snapshot = g_controls.GetLatestControlSnapshot();
+            if (now - last_knob_log >= 200) {
+                last_knob_log = now;
+                int cv5 = static_cast<int>(control_snapshot.position_knob * 1000.0f);
+                int cv6 = static_cast<int>(control_snapshot.density_knob * 1000.0f);
+                int cv7 = static_cast<int>(control_snapshot.blend_knob * 1000.0f);
+                int raw7 = static_cast<int>(g_hardware.GetMorphKnob().GetRawFloat() * 1000.0f);
+                int pos_val = static_cast<int>(control_snapshot.clouds_position * 1000.0f);
+                int size_val = static_cast<int>(control_snapshot.clouds_size * 1000.0f);
+                int dens_val = static_cast<int>(control_snapshot.clouds_density * 1000.0f);
+                int text_val = static_cast<int>(control_snapshot.clouds_texture * 1000.0f);
+                int fdb_val = static_cast<int>(control_snapshot.clouds_feedback * 1000.0f);
+                int rev_val = static_cast<int>(control_snapshot.clouds_reverb * 1000.0f);
+                g_hardware.GetHardware().PrintLine("CV5:%03d CV6:%03d CV7:%03d Raw7:%03d | Pos:%03d Size:%03d Dens:%03d Text:%03d Fdbk:%03d Rev:%03d",
+                                                   cv5,
+                                                   cv6,
+                                                   cv7,
+                                                   raw7,
+                                                   pos_val,
+                                                   size_val,
+                                                   dens_val,
+                                                   text_val,
+                                                   fdb_val,
+                                                   rev_val);
+            }
+
             // Arpeggiator tempo control
             if (g_controls.IsArpEnabled()) {
-                const auto& controls = g_controls.GetLatestControlSnapshot();
-                g_controls.GetArpeggiator().SetMainTempoFromKnob(controls.delay_time);
+                g_controls.GetArpeggiator().SetMainTempoFromKnob(control_snapshot.delay_time);
             }
 
             // Apply touch CV modulation to morph parameter
@@ -149,6 +254,7 @@ int main(void) {
         Bootload();
 
         UpdateDisplay();
+        g_audio_engine.GetCloudsProcessor().Prepare();
 
         // Poll touch sensor every 5 ms (200 Hz)
         if (now - lastPoll >= 5) {
@@ -156,9 +262,16 @@ int main(void) {
             PollTouchSensor();
         }
 
+        // Heartbeat indicator to verify firmware is running
+        if (now - lastHeartbeat >= 500) {
+            lastHeartbeat = now;
+            heartbeat_state = !heartbeat_state;
+            g_hardware.GetHardware().SetLed(heartbeat_state);
+        }
+
         // Yield for system tasks, adjusted for polling interval
         System::Delay(1); // Shorter delay to allow more frequent polling checks
     }
 
     return 0;
-} 
+}

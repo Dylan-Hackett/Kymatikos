@@ -2,7 +2,7 @@
 #ifndef MPR121_DAISY_H
 #define MPR121_DAISY_H
 
-#include "daisy_seed.h"
+#include "daisy.h"
 #include "per/i2c.h"
 
 // Add a namespace to avoid collision with daisy::Mpr121
@@ -69,6 +69,7 @@ class Mpr121
             i2c_config.periph = I2CHandle::Config::Peripheral::I2C_1;
             i2c_config.speed  = I2CHandle::Config::Speed::I2C_400KHZ;
             i2c_config.mode   = I2CHandle::Config::Mode::I2C_MASTER;
+            // Patch SM header labels B7/B8 correspond to MCU PB8/PB9.
             i2c_config.pin_config.scl = Pin(daisy::GPIOPort::PORTB, 8);
             i2c_config.pin_config.sda = Pin(daisy::GPIOPort::PORTB, 9);
             i2c_address               = MPR121_I2CADDR_DEFAULT;

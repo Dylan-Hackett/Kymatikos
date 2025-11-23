@@ -1,8 +1,10 @@
 #include "HardwareManager.h"
 #include "AudioConfig.h"
+#include <algorithm>
 
 // --- Namespace imports (local to this implementation file) ---
 using namespace daisy;
+using namespace daisy::patch_sm;
 
 HardwareManager::HardwareManager()
     : touch_sensor_present_(true), sample_rate_(48000.0f) {
@@ -13,70 +15,82 @@ void HardwareManager::Init() {
     InitADCs();
     InitTouchSensor();
     InitLEDs();
+    InitGateOutputs();
 }
 
 void HardwareManager::InitHardware() {
-    // Initialize Daisy Seed hardware
-    hw_.Configure();
+    // Initialize Daisy Patch SM hardware
     hw_.Init();
 
-    // Set sample rate to 32 kHz for lower CPU load and memory use
-    hw_.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_32KHZ);
+    // Run Daisy audio at 48 kHz to match Nimbus SM Clouds processing
+    hw_.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);
     hw_.SetAudioBlockSize(BLOCK_SIZE);
-    sample_rate_ = hw_.AudioSampleRate(); // Should be 32000
+    sample_rate_ = hw_.AudioSampleRate(); // Should report 48000
 
     // Initialize CPU load meter
     cpu_meter_.Init(sample_rate_, BLOCK_SIZE);
 }
 
 void HardwareManager::InitADCs() {
-    // Configure 12 ADC channels
-    AdcChannelConfig adc_config[12];
-    adc_config[0].InitSingle(hw_.GetPin(15));  // ADC 0: Delay Time
-    adc_config[1].InitSingle(hw_.GetPin(16));  // ADC 1: Delay Mix & Feedback
-    adc_config[2].InitSingle(hw_.GetPin(17));  // ADC 2: Envelope Release
-    adc_config[3].InitSingle(hw_.GetPin(18));  // ADC 3: Envelope Attack
-    adc_config[4].InitSingle(hw_.GetPin(19));  // ADC 4: Plaits Timbre
-    adc_config[5].InitSingle(hw_.GetPin(20));  // ADC 5: Plaits Harmonics
-    adc_config[6].InitSingle(hw_.GetPin(21));  // ADC 6: Plaits Morph
-    adc_config[7].InitSingle(hw_.GetPin(22));  // ADC 7: Plaits Pitch
-    adc_config[8].InitSingle(hw_.GetPin(23));  // ADC 8: Arpeggiator Toggle Pad
-    adc_config[9].InitSingle(hw_.GetPin(24));  // ADC 9: Model Select Previous Pad
-    adc_config[10].InitSingle(hw_.GetPin(25)); // ADC 10: Model Select Next Pad
-    adc_config[11].InitSingle(hw_.GetPin(28)); // ADC 11: Mod Wheel Control
+    // Reuse Daisy Patch SM control ADCs and map them to instrument parameters
+    constexpr int kAdcMap[12] = {
+        CV_1,   // ADC 0: Delay Time
+        CV_2,   // ADC 1: Delay Mix & Feedback
+        CV_3,   // ADC 2: Envelope Release
+        CV_4,   // ADC 3: Envelope Attack
+        CV_5,   // ADC 4: Timbre
+        CV_6,   // ADC 5: Harmonics
+        CV_7,   // ADC 6: Morph
+        CV_8,   // ADC 7: Pitch
+        ADC_9,  // ADC 8: Arp Toggle Pad
+        ADC_10, // ADC 9: Model Select Previous Pad
+        ADC_11, // ADC 10: Model Select Next Pad
+        ADC_12  // ADC 11: Mod Wheel Control
+    };
 
-    hw_.adc.Init(adc_config, 12);
+    delay_time_knob_.Init(hw_.adc.GetPtr(kAdcMap[0]), sample_rate_);
+    delay_mix_feedback_knob_.Init(hw_.adc.GetPtr(kAdcMap[1]), sample_rate_);
+    env_release_knob_.Init(hw_.adc.GetPtr(kAdcMap[2]), sample_rate_);
+    env_attack_knob_.Init(hw_.adc.GetPtr(kAdcMap[3]), sample_rate_);
+    timbre_knob_.Init(hw_.adc.GetPtr(kAdcMap[4]), sample_rate_);
+    harmonics_knob_.Init(hw_.adc.GetPtr(kAdcMap[5]), sample_rate_);
+    morph_knob_.Init(hw_.adc.GetPtr(kAdcMap[6]), sample_rate_);
+    pitch_knob_.Init(hw_.adc.GetPtr(kAdcMap[7]), sample_rate_);
+    arp_pad_.Init(hw_.adc.GetPtr(kAdcMap[8]), sample_rate_);
+    model_prev_pad_.Init(hw_.adc.GetPtr(kAdcMap[9]), sample_rate_);
+    model_next_pad_.Init(hw_.adc.GetPtr(kAdcMap[10]), sample_rate_);
+    mod_wheel_.Init(hw_.adc.GetPtr(kAdcMap[11]), sample_rate_);
+
     hw_.adc.Start();
-
-    // Initialize AnalogControl objects
-    delay_time_knob_.Init(hw_.adc.GetPtr(0), sample_rate_);
-    delay_mix_feedback_knob_.Init(hw_.adc.GetPtr(1), sample_rate_);
-    env_release_knob_.Init(hw_.adc.GetPtr(2), sample_rate_);
-    env_attack_knob_.Init(hw_.adc.GetPtr(3), sample_rate_);
-    timbre_knob_.Init(hw_.adc.GetPtr(4), sample_rate_);
-    harmonics_knob_.Init(hw_.adc.GetPtr(5), sample_rate_);
-    morph_knob_.Init(hw_.adc.GetPtr(6), sample_rate_);
-    pitch_knob_.Init(hw_.adc.GetPtr(7), sample_rate_);
-    arp_pad_.Init(hw_.adc.GetPtr(8), sample_rate_);
-    model_prev_pad_.Init(hw_.adc.GetPtr(9), sample_rate_);
-    model_next_pad_.Init(hw_.adc.GetPtr(10), sample_rate_);
-    mod_wheel_.Init(hw_.adc.GetPtr(11), sample_rate_);
 }
 
 void HardwareManager::InitTouchSensor() {
     // Attempt to initialize the MPR121 touch sensor
     kymatikos_hal::Mpr121::Config touch_config;
     touch_config.Defaults();
+    touch_config.i2c_address = 0x5A;
+    bool init_ok = touch_sensor_.Init(touch_config);
+    if(!init_ok)
+    {
+        touch_sensor_.ClearError();
+        touch_config.i2c_address = 0x5B;
+        init_ok                  = touch_sensor_.Init(touch_config);
+        if(init_ok)
+        {
+            hw_.PrintLine("[INFO] MPR121 detected at 0x5B (fallback)");
+        }
+    }
 
-    if (!touch_sensor_.Init(touch_config)) {
-        // Touch sensor failed to initialize – continue without it
+    if(!init_ok)
+    {
         touch_sensor_present_ = false;
-        hw_.PrintLine("[WARN] MPR121 init failed – continuing without touch sensor");
+        hw_.PrintLine("[WARN] MPR121 init failed at 0x5A/0x5B – continuing without touch sensor");
         return;
     }
 
     // Override default thresholds for more sensitivity
     touch_sensor_.SetThresholds(6, 3);
+    hw_.PrintLine("MPR121 touch controller detected.");
 }
 
 void HardwareManager::InitLEDs() {
@@ -86,9 +100,18 @@ void HardwareManager::InitLEDs() {
     led_cfg.speed = GPIO::Speed::LOW;
 
     Pin led_pins[12] = {
-        seed::D14, seed::D13, seed::D10, seed::D9,
-        seed::D8,  seed::D7,  seed::D6,  seed::D5,
-        seed::D4,  seed::D3,  seed::D2,  seed::D1
+        DaisyPatchSM::D1,
+        DaisyPatchSM::D2,
+        DaisyPatchSM::D3,
+        DaisyPatchSM::D4,
+        DaisyPatchSM::D5,
+        DaisyPatchSM::D6,
+        DaisyPatchSM::D7,
+        DaisyPatchSM::D8,
+        DaisyPatchSM::D9,
+        DaisyPatchSM::D10,
+        DaisyPatchSM::A8,
+        DaisyPatchSM::A9
     };
 
     for(int i = 0; i < 12; ++i) {
@@ -96,4 +119,29 @@ void HardwareManager::InitLEDs() {
         touch_leds_[i].Init(led_cfg);
         touch_leds_[i].Write(true);
     }
+}
+
+void HardwareManager::SetTouchLEDs(bool state) {
+    for(auto &led : touch_leds_) {
+        led.Write(state);
+    }
+}
+
+void HardwareManager::InitGateOutputs() {
+    daisy::GPIO::Config cfg;
+    cfg.mode  = daisy::GPIO::Mode::OUTPUT;
+    cfg.pull  = daisy::GPIO::Pull::NOPULL;
+    cfg.speed = daisy::GPIO::Speed::LOW;
+    cfg.pin   = daisy::patch_sm::DaisyPatchSM::B6;
+    gate_out2_.Init(cfg);
+    gate_out2_.Write(false);
+}
+
+void HardwareManager::SetGateOut2(bool state) {
+    gate_out2_.Write(state);
+}
+
+void HardwareManager::SetPitchCvVoltage(float volts) {
+    volts = std::max(0.0f, std::min(5.0f, volts));
+    hw_.WriteCvOut(daisy::patch_sm::CV_OUT_1, volts);
 }

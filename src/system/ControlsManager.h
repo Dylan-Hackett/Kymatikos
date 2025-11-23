@@ -21,9 +21,17 @@ class ControlsManager {
 public:
     struct ControlSnapshot {
         float pitch = 0.0f;
-        float harm_knob = 0.0f;
-        float timbre_knob = 0.0f;
-        float morph_knob = 0.0f;
+        float position_knob = 0.0f;
+        float density_knob = 0.0f;
+        float blend_knob = 0.0f;
+        float clouds_position = 0.0f;
+        float clouds_size = 0.5f;
+        float clouds_density = 0.0f;
+        float clouds_texture = 0.0f;
+        float clouds_feedback = 0.0f;
+        float clouds_reverb = 0.0f;
+        float clouds_dry_wet = 1.0f;
+        float clouds_pitch = 0.0f;
         float env_attack = 0.0f;
         float env_release = 0.0f;
         float delay_time = 0.0f;
@@ -55,6 +63,7 @@ public:
     volatile float* GetADCRawValues() { return adc_raw_values_; }
     float GetADCRawValue(int index) const { return adc_raw_values_[index]; }
     void SetADCRawValue(int index, float value) { adc_raw_values_[index] = value; }
+    volatile float& GetInputPeakLevel() { return input_peak_level_; }
 
     // Control snapshot access
     void UpdateControlSnapshot(const ControlSnapshot& snapshot);
@@ -106,6 +115,7 @@ private:
     // Display state
     volatile bool update_display_;
     volatile float smoothed_output_level_;
+    volatile float input_peak_level_;
 
     // ARP LED blink timestamps
     volatile uint32_t arp_led_timestamps_[12];

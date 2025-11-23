@@ -1,5 +1,5 @@
 #pragma once
-#include "daisy_seed.h"
+#include "daisy.h"
 
 struct SynthState {
     uint32_t magic;
