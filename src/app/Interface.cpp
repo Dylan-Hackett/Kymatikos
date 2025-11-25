@@ -189,16 +189,21 @@ void ReadKnobValues() {
     snapshot.density_knob = cv6_raw;
 
     const float raw_cv7 = g_hardware.GetCV7Knob().Value();
-    const float blend = daisysp::fclamp(1.0f - raw_cv7, 0.0f, 1.0f);
+    // Rescale CV7: pot only ranges 0.004-0.494, map to full 0-1
+    constexpr float kCV7Min = 0.00f;
+    constexpr float kCV7Max = 0.50f;
+    float scaled_cv7 = (raw_cv7 - kCV7Min) / (kCV7Max - kCV7Min);
+    scaled_cv7 = daisysp::fclamp(scaled_cv7, 0.0f, 1.0f);
+    // Inverted: knob at 0.5 (scaled=1) = silent, knob at 0 (scaled=0) = full effect
+    const float blend = 1.0f - scaled_cv7;
     snapshot.blend_knob = blend;
 
-    constexpr float kReverbThresh = 0.4f;
-    constexpr float kMaxBalance = 0.9f;
-    const float feedback = daisysp::fclamp(blend, 0.0f, 0.33f);
-    float reverb = (blend < kReverbThresh) ? 0.0f
-                   : (blend - kReverbThresh) / (1.0f - kReverbThresh);
-    reverb = daisysp::fclamp(reverb, 0.0f, kMaxBalance);
-    const float dry_wet = daisysp::fclamp(blend, 0.0f, kMaxBalance);
+    constexpr float kMaxReverb = 1.0f;
+    constexpr float kMaxDryWet = 0.9f;
+    constexpr float kMaxFeedback = 0.5f;
+    const float feedback = blend * kMaxFeedback;
+    const float reverb = blend * kMaxReverb;
+    const float dry_wet = blend * kMaxDryWet;
 
     const float mod_wheel = g_hardware.GetModWheel().Value();
     snapshot.mod_wheel = mod_wheel;
@@ -207,7 +212,7 @@ void ReadKnobValues() {
     snapshot.clouds_position = cv5;
     snapshot.clouds_size = size;
     snapshot.clouds_density = blend;
-    snapshot.clouds_texture = 0.5f;
+    snapshot.clouds_texture = 0.4f;
     snapshot.clouds_feedback = feedback;
     snapshot.clouds_reverb = reverb;
     snapshot.clouds_dry_wet = dry_wet;

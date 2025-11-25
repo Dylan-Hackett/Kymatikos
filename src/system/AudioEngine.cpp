@@ -1,5 +1,6 @@
 #include "AudioEngine.h"
 #include "Nimbus_SM/resources.h"
+#include <cstring>
 
 // Global SDRAM buffers for Clouds (must be at file scope for DSY_SDRAM_BSS attribute)
 DSY_SDRAM_BSS static uint8_t g_cloud_buffer[AudioEngine::CLOUD_BUFFER_SIZE];
@@ -12,6 +13,9 @@ AudioEngine::AudioEngine()
 
 void AudioEngine::Init(daisy::patch_sm::DaisyPatchSM* hw) {
     const float sample_rate = hw ? hw->AudioSampleRate() : 48000.0f;
+
+    memset(cloud_buffer_, 0, AudioEngine::CLOUD_BUFFER_SIZE);
+    memset(cloud_buffer_ccm_, 0, AudioEngine::CLOUD_BUFFER_CCM_SIZE);
 
     InitResources(sample_rate);
     clouds_processor_.Init(sample_rate,
