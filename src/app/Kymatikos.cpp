@@ -26,7 +26,7 @@ float PadIndexToVoltage(int pad_index)
         return 0.0f;
     constexpr int kCenterPad = 6;
     constexpr float kBaseVoltage = 2.5f;
-    float pitch_offset = kArabicMaqamScale[pad_index] - kArabicMaqamScale[kCenterPad];
+    float pitch_offset = kArabicMaqamScale[pad_index] - kArabicMaqamScale[kCenterPad] - 12.0f;
     return kBaseVoltage + (pitch_offset / 12.0f);
 }
 

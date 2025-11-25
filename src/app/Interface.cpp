@@ -193,9 +193,12 @@ void ReadKnobValues() {
     snapshot.blend_knob = blend;
 
     constexpr float kReverbThresh = 0.4f;
-    const float feedback = daisysp::fclamp(blend, 0.0f, 0.30f);
-    const float reverb = (blend < kReverbThresh) ? 0.0f
-                         : (blend - kReverbThresh) / (1.0f - kReverbThresh);
+    constexpr float kMaxBalance = 0.9f;
+    const float feedback = daisysp::fclamp(blend, 0.0f, 0.33f);
+    float reverb = (blend < kReverbThresh) ? 0.0f
+                   : (blend - kReverbThresh) / (1.0f - kReverbThresh);
+    reverb = daisysp::fclamp(reverb, 0.0f, kMaxBalance);
+    const float dry_wet = daisysp::fclamp(blend, 0.0f, kMaxBalance);
 
     const float mod_wheel = g_hardware.GetModWheel().Value();
     snapshot.mod_wheel = mod_wheel;
@@ -207,7 +210,7 @@ void ReadKnobValues() {
     snapshot.clouds_texture = 0.5f;
     snapshot.clouds_feedback = feedback;
     snapshot.clouds_reverb = reverb;
-    snapshot.clouds_dry_wet = 0.85f;
+    snapshot.clouds_dry_wet = dry_wet;
     snapshot.clouds_pitch = pitch;
     snapshot.pitch = g_hardware.GetPitchKnob().Value();
 
