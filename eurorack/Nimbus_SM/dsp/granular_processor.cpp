@@ -274,6 +274,23 @@ void GranularProcessorClouds::Process(FloatFrame* input,
         diffuser_.Process(out_, size);
     }
 
+    // Pitch shifting for looping delay mode (when not frozen or synchronized)
+    if(playback_mode_ == PLAYBACK_MODE_LOOPING_DELAY
+       && (!parameters_.freeze || looper_.synchronized()))
+    {
+        pitch_shifter_.set_ratio(SemitonesToRatio(parameters_.pitch));
+        pitch_shifter_.set_size(parameters_.size);
+        float x           = parameters_.pitch;
+        const float limit = 0.7f;
+        const float slew  = 0.4f;
+        float       wet   = x < -limit          ? 1.0f
+                            : x < -limit + slew ? 1.0f - (x + limit) / slew
+                            : x < limit - slew  ? 0.0f
+                            : x < limit         ? 1.0f + (x - limit) / slew
+                                                : 1.0f;
+        pitch_shifter_.set_dry_wet(wet);
+        pitch_shifter_.Process(out_, size);
+    }
 
     // Apply filters.
     if(playback_mode_ == PLAYBACK_MODE_LOOPING_DELAY

@@ -181,11 +181,22 @@ void ProcessControls() {
 void ReadKnobValues() {
     ControlsManager::ControlSnapshot snapshot{};
     const float cv5_raw = g_hardware.GetCV5Knob().Value();                // ADC 4
-    const float cv5 = daisysp::fclamp(cv5_raw, 0.0f, 1.0f);
+    // Rescale CV5: pot only ranges 0.0-0.5, map to full 0-1
+    constexpr float kCV5Min = 0.00f;
+    constexpr float kCV5Max = 0.50f;
+    float cv5 = (cv5_raw - kCV5Min) / (kCV5Max - kCV5Min);
+    cv5 = daisysp::fclamp(cv5, 0.0f, 1.0f);
     snapshot.position_knob = cv5_raw;
 
     const float cv6_raw = g_hardware.GetCV6Knob().Value();
-    const float size = daisysp::fclamp(cv6_raw, 0.0f, 1.0f);
+    // Rescale CV6: assume same pot range as CV7 (0.0-0.5)
+    constexpr float kCV6Min = 0.00f;
+    constexpr float kCV6Max = 0.50f;
+    float cv6 = (cv6_raw - kCV6Min) / (kCV6Max - kCV6Min);
+    cv6 = daisysp::fclamp(cv6, 0.0f, 1.0f);
+    const float size = cv6;
+    // CV6 also controls Clouds pitch: -12 to +12 semitones
+    const float cv6_pitch = (cv6 * 2.0f - 1.0f) * 12.0f;
     snapshot.density_knob = cv6_raw;
 
     const float raw_cv7 = g_hardware.GetCV7Knob().Value();
@@ -200,14 +211,13 @@ void ReadKnobValues() {
 
     constexpr float kMaxReverb = 1.0f;
     constexpr float kMaxDryWet = 0.9f;
-    constexpr float kMaxFeedback = 0.5f;
+    constexpr float kMaxFeedback = 0.3f;
     const float feedback = blend * kMaxFeedback;
     const float reverb = blend * kMaxReverb;
     const float dry_wet = blend * kMaxDryWet;
 
     const float mod_wheel = g_hardware.GetModWheel().Value();
     snapshot.mod_wheel = mod_wheel;
-    const float pitch = daisysp::fclamp((mod_wheel * 2.0f - 1.0f) * 12.0f, -12.0f, 12.0f);
 
     snapshot.clouds_position = cv5;
     snapshot.clouds_size = size;
@@ -216,7 +226,7 @@ void ReadKnobValues() {
     snapshot.clouds_feedback = feedback;
     snapshot.clouds_reverb = reverb;
     snapshot.clouds_dry_wet = dry_wet;
-    snapshot.clouds_pitch = pitch;
+    snapshot.clouds_pitch = cv6_pitch;
     snapshot.pitch = g_hardware.GetPitchKnob().Value();
 
     g_controls.UpdateControlSnapshot(snapshot);
