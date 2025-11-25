@@ -11,6 +11,7 @@ using namespace daisysp;
 namespace
 {
 constexpr float kInputGain = 1.8f;
+constexpr float kOutputGain = 1.5f;
 
 FloatFrame g_clouds_in[BLOCK_SIZE];
 FloatFrame g_clouds_out[BLOCK_SIZE];
@@ -115,8 +116,8 @@ void ProcessAudioThroughClouds(AudioHandle::InterleavingInputBuffer in,
 
     for(size_t frame = 0; frame < frame_count; ++frame) {
         const size_t idx = frame * 2;
-        out[idx]     = g_clouds_out[frame].l;
-        out[idx + 1] = g_clouds_out[frame].r;
+        out[idx]     = g_clouds_out[frame].l * kOutputGain;
+        out[idx + 1] = g_clouds_out[frame].r * kOutputGain;
     }
 
     for(size_t frame = frame_count; frame < total_frames; ++frame) {

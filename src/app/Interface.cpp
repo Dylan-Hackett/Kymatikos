@@ -69,8 +69,7 @@ void InitializeSynth() {
     });
     DebugBlink(4);
 
-    // Force arpeggiator on for now
-    g_controls.SetArpEnabled(true);
+    g_controls.SetArpEnabled(false);
 
     g_hardware.GetHardware().StartLog(false); // Start log immediately (non-blocking)
     DebugBlink(5);
@@ -134,7 +133,22 @@ void UpdateLED() {
 }
 
 void UpdateArpeggiatorToggle() {
-    g_controls.SetArpEnabled(true);
+    constexpr float kThreshOn  = 0.30f;
+    constexpr float kThreshOff = 0.20f;
+    static bool pressed = false;
+
+    float pad = g_hardware.GetArpPad().Value();
+    if (!pressed && pad > kThreshOn) {
+        pressed = true;
+        bool next = !g_controls.IsArpEnabled();
+        g_controls.SetArpEnabled(next);
+        if (next) {
+            g_controls.GetArpeggiator().Init(g_hardware.GetSampleRate());
+            g_controls.GetArpeggiator().SetDirection(Arpeggiator::AsPlayed);
+        }
+    } else if (pressed && pad < kThreshOff) {
+        pressed = false;
+    }
 }
 
 void UpdateEngineSelection() {
@@ -170,29 +184,32 @@ void ReadKnobValues() {
     const float cv5 = daisysp::fclamp(cv5_raw, 0.0f, 1.0f);
     snapshot.position_knob = cv5_raw;
 
-    const float cv6_raw = g_hardware.GetCV6Knob().Value();                // ADC 5
-    const float cv6 = daisysp::fclamp(cv6_raw, 0.0f, 1.0f);
+    const float cv6_raw = g_hardware.GetCV6Knob().Value();
+    const float size = daisysp::fclamp(cv6_raw, 0.0f, 1.0f);
     snapshot.density_knob = cv6_raw;
 
-    const float raw_cv7 = g_hardware.GetCV7Knob().Value();                // ADC 6
-    const float blend_value = daisysp::fclamp(1.0f - raw_cv7, 0.0f, 1.0f);
-    const float clouds_feedback = daisysp::fclamp(blend_value, 0.0f, 0.25f);
-    const float clouds_reverb = blend_value >= 0.7f ? 1.0f : (blend_value / 0.7f);
-    snapshot.blend_knob = blend_value;
+    const float raw_cv7 = g_hardware.GetCV7Knob().Value();
+    const float blend = daisysp::fclamp(1.0f - raw_cv7, 0.0f, 1.0f);
+    snapshot.blend_knob = blend;
 
-    const float mod_wheel = g_hardware.GetModWheel().Value();                      // ADC 11
+    constexpr float kReverbThresh = 0.4f;
+    const float feedback = daisysp::fclamp(blend, 0.0f, 0.30f);
+    const float reverb = (blend < kReverbThresh) ? 0.0f
+                         : (blend - kReverbThresh) / (1.0f - kReverbThresh);
+
+    const float mod_wheel = g_hardware.GetModWheel().Value();
     snapshot.mod_wheel = mod_wheel;
-    const float clouds_pitch = daisysp::fclamp((mod_wheel * 2.0f - 1.0f) * 12.0f, -12.0f, 12.0f);
+    const float pitch = daisysp::fclamp((mod_wheel * 2.0f - 1.0f) * 12.0f, -12.0f, 12.0f);
 
     snapshot.clouds_position = cv5;
-    snapshot.clouds_size = blend_value;
-    snapshot.clouds_density = cv6;
-    snapshot.clouds_texture = cv6;
-    snapshot.clouds_feedback = clouds_feedback;
-    snapshot.clouds_reverb = clouds_reverb;
-    snapshot.clouds_dry_wet = blend_value;
-    snapshot.clouds_pitch = clouds_pitch;
-    snapshot.pitch = g_hardware.GetPitchKnob().Value();                         // ADC 7
+    snapshot.clouds_size = size;
+    snapshot.clouds_density = blend;
+    snapshot.clouds_texture = 0.5f;
+    snapshot.clouds_feedback = feedback;
+    snapshot.clouds_reverb = reverb;
+    snapshot.clouds_dry_wet = 0.85f;
+    snapshot.clouds_pitch = pitch;
+    snapshot.pitch = g_hardware.GetPitchKnob().Value();
 
     g_controls.UpdateControlSnapshot(snapshot);
 }

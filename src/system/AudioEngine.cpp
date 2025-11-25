@@ -22,5 +22,5 @@ void AudioEngine::Init(daisy::patch_sm::DaisyPatchSM* hw) {
 
     clouds_processor_.mutable_parameters()->dry_wet = 0.0f;
     clouds_processor_.mutable_parameters()->freeze = false;
-    clouds_processor_.set_playback_mode(PLAYBACK_MODE_GRANULAR);
+    clouds_processor_.set_playback_mode(PLAYBACK_MODE_LOOPING_DELAY);
 }
