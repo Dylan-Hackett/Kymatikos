@@ -1,4 +1,5 @@
 #include "Kymatikos.h"
+#include <atomic>
 
 // --- Namespace imports (local to this implementation file) ---
 using namespace daisy;
@@ -27,6 +28,17 @@ float PadIndexToVoltage(int pad_index)
     constexpr float kBaseVoltage = 2.5f;
     float pitch_offset = kArabicMaqamScale[pad_index] - kArabicMaqamScale[kCenterPad];
     return kBaseVoltage + (pitch_offset / 12.0f);
+}
+
+// Arp gate pulse deadline (ms since boot) for analog gate output
+static std::atomic<uint32_t> g_gate_deadline_ms{0};
+static constexpr uint32_t kGatePulseMs = 10;
+
+// Called from arp trigger callback to request a short gate pulse
+void RequestArpGatePulse() {
+    uint32_t now = g_hardware.GetHardware().system.GetNow();
+    g_gate_deadline_ms.store(now + kGatePulseMs, std::memory_order_relaxed);
+    g_hardware.SetGateOut2(true);
 }
 
 // Volatile variables now managed by ControlsManager (see g_controls)
@@ -58,7 +70,7 @@ void UpdateDisplay() {
         int cv5 = static_cast<int>(control_snapshot.position_knob * 1000.0f);
         int cv6 = static_cast<int>(control_snapshot.density_knob * 1000.0f);
         int cv7 = static_cast<int>(control_snapshot.blend_knob * 1000.0f);
-        int raw7 = static_cast<int>(g_hardware.GetMorphKnob().GetRawFloat() * 1000.0f);
+        int raw7 = static_cast<int>(g_hardware.GetCV7Knob().GetRawFloat() * 1000.0f);
         int pos_val = static_cast<int>(control_snapshot.clouds_position * 1000.0f);
         int size_val = static_cast<int>(control_snapshot.clouds_size * 1000.0f);
         int density_val = static_cast<int>(control_snapshot.clouds_density * 1000.0f);
@@ -92,7 +104,7 @@ void UpdateDisplay() {
         // Print once with a single call to avoid throttling
         g_hardware.GetHardware().PrintLine("%s", msg);
 
-        g_controls.ShouldUpdateDisplay() = false;
+        g_controls.SetUpdateDisplay(false);
     }
 }
 
@@ -100,11 +112,15 @@ void UpdateDisplay() {
 void PollTouchSensor() {
     static bool last_gate_state = false;
     static int last_pad_index = -1;
+    uint16_t prev_touch_state = g_controls.GetCurrentTouchState();
+    uint32_t now = g_hardware.GetHardware().system.GetNow();
+    bool gate_pulse_active = now < g_gate_deadline_ms.load(std::memory_order_relaxed);
+
     if(!g_hardware.IsTouchSensorPresent()) {
         // Touch sensor unavailable – nothing to poll
-        if(last_gate_state) {
-            g_hardware.SetGateOut2(false);
-            last_gate_state = false;
+        if(gate_pulse_active != last_gate_state) {
+            g_hardware.SetGateOut2(gate_pulse_active);
+            last_gate_state = gate_pulse_active;
         }
         last_pad_index = -1;
         return;
@@ -118,7 +134,12 @@ void PollTouchSensor() {
         g_hardware.GetTouchSensor().SetThresholds(6, 3);
     }
     uint16_t touched = g_hardware.GetTouchSensor().Touched();
-    bool gate_state = touched != 0;
+    // On a new touch, fire a gate pulse
+    if(touched != 0 && prev_touch_state == 0) {
+        RequestArpGatePulse();
+        gate_pulse_active = true;
+    }
+    bool gate_state = gate_pulse_active;
     if(gate_state != last_gate_state) {
         g_hardware.SetGateOut2(gate_state);
         last_gate_state = gate_state;
@@ -132,25 +153,26 @@ void PollTouchSensor() {
             }
         }
     }
-    g_hardware.SetPitchCvVoltage(PadIndexToVoltage(last_pad_index));
+    // Drive pitch CV from touch when arp is inactive; otherwise arpeggiator callback drives CV per step
+    if(!g_controls.IsArpEnabled() || !g_controls.GetArpeggiator().IsActive()) {
+        g_hardware.SetPitchCvVoltage(PadIndexToVoltage(last_pad_index));
+    }
 
-    g_controls.GetCurrentTouchState() = touched;
+    g_controls.SetCurrentTouchState(touched);
 
     // Update touch pad LEDs with touch and ARP blink
-    uint32_t now = g_hardware.GetHardware().system.GetNow();
     bool arp_on = g_controls.GetArpeggiator().IsActive();
     auto* touch_leds = g_hardware.GetTouchLEDs();
     for(int i = 0; i < 12; ++i) {
-        int ledIdx = 11 - i;  // pad i maps to LED[11-i]
+        int ledIdx = 11 - i;
         bool padTouched = (touched & (1 << i)) != 0;
-        bool blink     = (now - g_controls.GetArpLEDTimestamps()[ledIdx]) < ControlsManager::ARP_LED_DURATION_MS;
-        bool ledState  = arp_on ? blink : (padTouched || blink);
+        bool blink = (now - g_controls.GetArpLEDTimestamp(ledIdx)) < ControlsManager::ARP_LED_DURATION_MS;
+        bool ledState = arp_on ? blink : (padTouched || blink);
         touch_leds[ledIdx].Write(ledState);
     }
 
     if (touched == 0) {
-
-        g_controls.GetTouchCVValue() = g_controls.GetTouchCVValue() * 0.95f;
+        g_controls.SetTouchCVValue(g_controls.GetTouchCVValue() * 0.95f);
         return;
     }
 
@@ -185,12 +207,10 @@ void PollTouchSensor() {
     // float combined_value = position_value * position_weight + normalized_value * (1.0f - position_weight); // Replaced
     float combined_value = normalized_value; // Use normalized average pressure directly
 
-    // Apply adaptive smoothing - more smoothing for small changes, less for big changes
-    float change = fabsf(combined_value - g_controls.GetTouchCVValue());
-    float smoothing = daisysp::fmax(0.5f, 0.95f - change * 2.0f); // 0.5-0.95 smoothing range
-
-    // Update the shared volatile variable
-    g_controls.GetTouchCVValue() = g_controls.GetTouchCVValue() * smoothing + combined_value * (1.0f - smoothing);
+    float prev_cv = g_controls.GetTouchCVValue();
+    float change = fabsf(combined_value - prev_cv);
+    float smoothing = daisysp::fmax(0.5f, 0.95f - change * 2.0f);
+    g_controls.SetTouchCVValue(prev_cv * smoothing + combined_value * (1.0f - smoothing));
 }
 
 int main(void) {
@@ -211,41 +231,6 @@ int main(void) {
             lastUIUpdate = now;
             ProcessControls();
             ReadKnobValues();
-
-            static uint32_t last_knob_log = 0;
-            const auto& control_snapshot = g_controls.GetLatestControlSnapshot();
-            if (now - last_knob_log >= 200) {
-                last_knob_log = now;
-                int cv5 = static_cast<int>(control_snapshot.position_knob * 1000.0f);
-                int cv6 = static_cast<int>(control_snapshot.density_knob * 1000.0f);
-                int cv7 = static_cast<int>(control_snapshot.blend_knob * 1000.0f);
-                int raw7 = static_cast<int>(g_hardware.GetMorphKnob().GetRawFloat() * 1000.0f);
-                int pos_val = static_cast<int>(control_snapshot.clouds_position * 1000.0f);
-                int size_val = static_cast<int>(control_snapshot.clouds_size * 1000.0f);
-                int dens_val = static_cast<int>(control_snapshot.clouds_density * 1000.0f);
-                int text_val = static_cast<int>(control_snapshot.clouds_texture * 1000.0f);
-                int fdb_val = static_cast<int>(control_snapshot.clouds_feedback * 1000.0f);
-                int rev_val = static_cast<int>(control_snapshot.clouds_reverb * 1000.0f);
-                g_hardware.GetHardware().PrintLine("CV5:%03d CV6:%03d CV7:%03d Raw7:%03d | Pos:%03d Size:%03d Dens:%03d Text:%03d Fdbk:%03d Rev:%03d",
-                                                   cv5,
-                                                   cv6,
-                                                   cv7,
-                                                   raw7,
-                                                   pos_val,
-                                                   size_val,
-                                                   dens_val,
-                                                   text_val,
-                                                   fdb_val,
-                                                   rev_val);
-            }
-
-            // Arpeggiator tempo control
-            if (g_controls.IsArpEnabled()) {
-                g_controls.GetArpeggiator().SetMainTempoFromKnob(control_snapshot.delay_time);
-            }
-
-            // Apply touch CV modulation to morph parameter
-            // Morph modulation now handled in audio thread via control snapshots
         }
 
         UpdateLED();

@@ -12,7 +12,7 @@
  * HardwareManager encapsulates all hardware-related state:
  * - Daisy Patch SM hardware
  * - Touch sensor (MPR121)
- * - 12 ADC controls (knobs/pads)
+ * - ADC controls (knobs/pads)
  * - 12 LED GPIOs
  * - CPU load meter
  *
@@ -33,17 +33,13 @@ public:
     daisy::CpuLoadMeter& GetCpuMeter() { return cpu_meter_; }
 
     // ADC Control access
-    daisy::AnalogControl& GetDelayTimeKnob() { return delay_time_knob_; }
-    daisy::AnalogControl& GetDelayMixFeedbackKnob() { return delay_mix_feedback_knob_; }
-    daisy::AnalogControl& GetEnvReleaseKnob() { return env_release_knob_; }
-    daisy::AnalogControl& GetEnvAttackKnob() { return env_attack_knob_; }
-    daisy::AnalogControl& GetTimbreKnob() { return timbre_knob_; }
-    daisy::AnalogControl& GetHarmonicsKnob() { return harmonics_knob_; }
-    daisy::AnalogControl& GetMorphKnob() { return morph_knob_; }
+    daisy::AnalogControl& GetCV5Knob() { return cv5_knob_; }
+    daisy::AnalogControl& GetCV6Knob() { return cv6_knob_; }
+    daisy::AnalogControl& GetCV7Knob() { return cv7_knob_; }
     daisy::AnalogControl& GetPitchKnob() { return pitch_knob_; }
     daisy::AnalogControl& GetArpPad() { return arp_pad_; }
-    daisy::AnalogControl& GetModelPrevPad() { return model_prev_pad_; }
-    daisy::AnalogControl& GetModelNextPad() { return model_next_pad_; }
+    daisy::AnalogControl& GetPrevPad() { return prev_pad_; }
+    daisy::AnalogControl& GetNextPad() { return next_pad_; }
     daisy::AnalogControl& GetModWheel() { return mod_wheel_; }
 
     // LED access
@@ -66,18 +62,14 @@ private:
     kymatikos_hal::Mpr121 touch_sensor_;
     daisy::CpuLoadMeter cpu_meter_;
 
-    // 12 ADC Controls
-    daisy::AnalogControl delay_time_knob_;        // ADC 0 (Pin 15)
-    daisy::AnalogControl delay_mix_feedback_knob_; // ADC 1 (Pin 16)
-    daisy::AnalogControl env_release_knob_;       // ADC 2 (Pin 17)
-    daisy::AnalogControl env_attack_knob_;        // ADC 3 (Pin 18)
-    daisy::AnalogControl timbre_knob_;            // ADC 4 (Pin 20)
-    daisy::AnalogControl harmonics_knob_;         // ADC 5 (Pin 21)
-    daisy::AnalogControl morph_knob_;             // ADC 6 (Pin 22)
+    // ADC Controls
+    daisy::AnalogControl cv5_knob_;               // ADC 4 (Pin 20)
+    daisy::AnalogControl cv6_knob_;               // ADC 5 (Pin 21)
+    daisy::AnalogControl cv7_knob_;               // ADC 6 (Pin 22)
     daisy::AnalogControl pitch_knob_;             // ADC 7 (Pin 23)
     daisy::AnalogControl arp_pad_;                // ADC 8 (Pin 23)
-    daisy::AnalogControl model_prev_pad_;         // ADC 9 (Pin 24)
-    daisy::AnalogControl model_next_pad_;         // ADC 10 (Pin 25)
+    daisy::AnalogControl prev_pad_;               // ADC 9 (Pin 24)
+    daisy::AnalogControl next_pad_;               // ADC 10 (Pin 25)
     daisy::AnalogControl mod_wheel_;              // ADC 11 (Pin 28)
 
     // 12 Touch LEDs

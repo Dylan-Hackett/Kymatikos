@@ -2,22 +2,19 @@
 #include <cstring>
 
 ControlsManager::ControlsManager()
-    : current_touch_state_(0),
-      touch_cv_value_(0.0f),
-      current_engine_index_(0),
-      engine_changed_flag_(false),
+    : touch_state_(0),
+      touch_cv_(0.0f),
+      engine_index_(0),
       arp_enabled_(false),
       arp_clear_requested_(false),
       control_read_index_(0),
       control_write_index_(0),
       update_display_(false),
-      smoothed_output_level_(0.0f),
-      input_peak_level_(0.0f),
-      engine_retrigger_phase_(0),
+      smoothed_level_(0.0f),
+      input_peak_(0.0f),
       was_arp_on_(false) {
-    // Initialize arrays to zero
-    memset((void*)adc_raw_values_, 0, sizeof(adc_raw_values_));
-    memset((void*)arp_led_timestamps_, 0, sizeof(arp_led_timestamps_));
+    memset(adc_raw_values_, 0, sizeof(adc_raw_values_));
+    for(int i = 0; i < 12; ++i) arp_led_ts_[i].store(0, std::memory_order_relaxed);
     control_buffers_[0] = ControlSnapshot{};
     control_buffers_[1] = ControlSnapshot{};
     audio_control_snapshot_ = ControlSnapshot{};

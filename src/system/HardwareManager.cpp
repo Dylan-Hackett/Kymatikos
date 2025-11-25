@@ -32,34 +32,24 @@ void HardwareManager::InitHardware() {
 }
 
 void HardwareManager::InitADCs() {
-    // Reuse Daisy Patch SM control ADCs and map them to instrument parameters
-    constexpr int kAdcMap[12] = {
-        CV_1,   // ADC 0: Delay Time
-        CV_2,   // ADC 1: Delay Mix & Feedback
-        CV_3,   // ADC 2: Envelope Release
-        CV_4,   // ADC 3: Envelope Attack
-        CV_5,   // ADC 4: Timbre
-        CV_6,   // ADC 5: Harmonics
-        CV_7,   // ADC 6: Morph
-        CV_8,   // ADC 7: Pitch
-        ADC_9,  // ADC 8: Arp Toggle Pad
-        ADC_10, // ADC 9: Model Select Previous Pad
-        ADC_11, // ADC 10: Model Select Next Pad
-        ADC_12  // ADC 11: Mod Wheel Control
-    };
+    // Reuse Daisy Patch SM control ADCs and map them to the active parameters
+    constexpr int kCv5    = CV_5;   // ADC 4
+    constexpr int kCv6    = CV_6;   // ADC 5
+    constexpr int kCv7    = CV_7;   // ADC 6
+    constexpr int kPitch  = CV_8;   // ADC 7
+    constexpr int kArpPad = ADC_9;  // ADC 8: Arp Pad
+    constexpr int kPrev   = ADC_10; // ADC 9: Previous Pad
+    constexpr int kNext   = ADC_11; // ADC 10: Next Pad
+    constexpr int kMod    = ADC_12; // ADC 11: Mod Wheel Control
 
-    delay_time_knob_.Init(hw_.adc.GetPtr(kAdcMap[0]), sample_rate_);
-    delay_mix_feedback_knob_.Init(hw_.adc.GetPtr(kAdcMap[1]), sample_rate_);
-    env_release_knob_.Init(hw_.adc.GetPtr(kAdcMap[2]), sample_rate_);
-    env_attack_knob_.Init(hw_.adc.GetPtr(kAdcMap[3]), sample_rate_);
-    timbre_knob_.Init(hw_.adc.GetPtr(kAdcMap[4]), sample_rate_);
-    harmonics_knob_.Init(hw_.adc.GetPtr(kAdcMap[5]), sample_rate_);
-    morph_knob_.Init(hw_.adc.GetPtr(kAdcMap[6]), sample_rate_);
-    pitch_knob_.Init(hw_.adc.GetPtr(kAdcMap[7]), sample_rate_);
-    arp_pad_.Init(hw_.adc.GetPtr(kAdcMap[8]), sample_rate_);
-    model_prev_pad_.Init(hw_.adc.GetPtr(kAdcMap[9]), sample_rate_);
-    model_next_pad_.Init(hw_.adc.GetPtr(kAdcMap[10]), sample_rate_);
-    mod_wheel_.Init(hw_.adc.GetPtr(kAdcMap[11]), sample_rate_);
+    cv5_knob_.Init(hw_.adc.GetPtr(kCv5), sample_rate_);
+    cv6_knob_.Init(hw_.adc.GetPtr(kCv6), sample_rate_);
+    cv7_knob_.Init(hw_.adc.GetPtr(kCv7), sample_rate_);
+    pitch_knob_.Init(hw_.adc.GetPtr(kPitch), sample_rate_);
+    arp_pad_.Init(hw_.adc.GetPtr(kArpPad), sample_rate_);
+    prev_pad_.Init(hw_.adc.GetPtr(kPrev), sample_rate_);
+    next_pad_.Init(hw_.adc.GetPtr(kNext), sample_rate_);
+    mod_wheel_.Init(hw_.adc.GetPtr(kMod), sample_rate_);
 
     hw_.adc.Start();
 }

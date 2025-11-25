@@ -10,7 +10,7 @@ using namespace daisysp;
 
 namespace
 {
-constexpr float kInputGain = 2.5f;
+constexpr float kInputGain = 1.8f;
 
 FloatFrame g_clouds_in[BLOCK_SIZE];
 FloatFrame g_clouds_out[BLOCK_SIZE];
@@ -83,7 +83,7 @@ void UpdateArpeggiator() {
         last_touch_state = g_controls.GetCurrentTouchState();
     }
 
-    g_controls.WasArpOn() = current_arp_on;
+    g_controls.SetWasArpOn(current_arp_on);
 }
 
 void ProcessAudioThroughClouds(AudioHandle::InterleavingInputBuffer in,
@@ -111,7 +111,7 @@ void ProcessAudioThroughClouds(AudioHandle::InterleavingInputBuffer in,
 
     processor.Process(g_clouds_in, g_clouds_out, frame_count);
 
-    g_controls.GetInputPeakLevel() = block_peak;
+    g_controls.SetInputPeakLevel(block_peak);
 
     for(size_t frame = 0; frame < frame_count; ++frame) {
         const size_t idx = frame * 2;
@@ -131,13 +131,14 @@ void ProcessAudioThroughClouds(AudioHandle::InterleavingInputBuffer in,
 void UpdatePerformanceMonitors(size_t size, AudioHandle::InterleavingOutputBuffer out) {
     if (size > 0) {
         float current_level = fabsf(out[0]);
-        g_controls.GetSmoothedOutputLevel() = g_controls.GetSmoothedOutputLevel() * 0.99f + current_level * 0.01f;
+        float prev = g_controls.GetSmoothedOutputLevel();
+        g_controls.SetSmoothedOutputLevel(prev * 0.99f + current_level * 0.01f);
     }
 
     static uint32_t display_counter = 0;
     static const uint32_t display_interval_blocks = (uint32_t)(g_hardware.GetSampleRate() / BLOCK_SIZE * 3.0f);
     if (++display_counter >= display_interval_blocks) {
         display_counter = 0;
-        g_controls.ShouldUpdateDisplay() = true;
+        g_controls.SetUpdateDisplay(true);
     }
 }

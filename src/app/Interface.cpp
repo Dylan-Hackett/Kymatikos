@@ -62,15 +62,15 @@ void InitializeSynth() {
     g_audio_engine.Init(&g_hardware.GetHardware());
     DebugBlink(3);
 
-    // Setup arpeggiator callback for LED feedback
-    // Note: Arpeggiator is now used to modulate Clouds parameters rhythmically
-    // rather than triggering voices
     g_controls.GetArpeggiator().SetNoteTriggerCallback([&](int pad_idx){
-        // Update LED timestamps for visual feedback
-        g_controls.GetArpLEDTimestamps()[11 - pad_idx] = g_hardware.GetHardware().system.GetNow();
-        // TODO: Could modulate Clouds parameters here based on arp triggers
+        g_controls.SetArpLEDTimestamp(11 - pad_idx, g_hardware.GetHardware().system.GetNow());
+        RequestArpGatePulse();
+        g_hardware.SetPitchCvVoltage(PadIndexToVoltage(pad_idx));
     });
     DebugBlink(4);
+
+    // Force arpeggiator on for now
+    g_controls.SetArpEnabled(true);
 
     g_hardware.GetHardware().StartLog(false); // Start log immediately (non-blocking)
     DebugBlink(5);
@@ -102,8 +102,8 @@ void Bootload() {
         return;
 
     bool combo_pressed = (g_hardware.GetArpPad().GetRawFloat()   > 0.5f) &&
-                         (g_hardware.GetModelPrevPad().GetRawFloat() > 0.5f) &&
-                         (g_hardware.GetModelNextPad().GetRawFloat() > 0.5f);
+                         (g_hardware.GetPrevPad().GetRawFloat() > 0.5f) &&
+                         (g_hardware.GetNextPad().GetRawFloat() > 0.5f);
 
     if(combo_pressed)
     {
@@ -133,60 +133,24 @@ void UpdateLED() {
     }
 }
 
-// Function for Arpeggiator Toggle Pad
 void UpdateArpeggiatorToggle() {
-    constexpr float kOnThreshold  = 0.30f;   // more sensitive press detection
-    constexpr float kOffThreshold = 0.20f;   // lower release threshold for fast reset
-    static bool pad_pressed = false;          // debounced pad pressed state
-
-    float pad_read = g_hardware.GetArpPad().Value();
-
-    // Detect state transitions with hysteresis
-    if(!pad_pressed && pad_read > kOnThreshold)
-    {
-        pad_pressed = true;
-        // Rising edge detected -> toggle arp
-        bool new_state = !g_controls.IsArpEnabled();
-        g_controls.SetArpEnabled(new_state);
-        if(new_state)
-        {
-            g_controls.GetArpeggiator().Init(g_hardware.GetSampleRate());          // restart timing
-            g_controls.GetArpeggiator().SetNoteTriggerCallback([&](int pad_idx){
-                // Update LED timestamps for visual feedback
-                g_controls.GetArpLEDTimestamps()[11 - pad_idx] = g_hardware.GetHardware().system.GetNow();
-            });
-            g_controls.GetArpeggiator().SetDirection(Arpeggiator::AsPlayed); // Set default direction to AsPlayed
-        }
-    }
-    else if(pad_pressed && pad_read < kOffThreshold)
-    {
-        // Consider pad released only when it falls well below off threshold
-        pad_pressed = false;
-    }
+    g_controls.SetArpEnabled(true);
 }
 
-// Engine selection (simplified - no Plaits engines, can be repurposed for Clouds modes)
 void UpdateEngineSelection() {
-    // TODO: Could be repurposed to select different Clouds playback modes
-    // (Granular, Pitch Shifter, Looping Delay, Spectral)
-    // For now, this function is a no-op
+    // TODO: repurpose for Clouds mode selection
 }
 
 // Moved from AudioProcessor.cpp
 void ProcessControls() {
-    g_hardware.GetDelayTimeKnob().Process();        // ADC 0
-    g_hardware.GetEnvReleaseKnob().Process();       // ADC 2
-    g_hardware.GetEnvAttackKnob().Process();        // ADC 3
-    g_hardware.GetTimbreKnob().Process();            // ADC 4
-    g_hardware.GetHarmonicsKnob().Process();         // ADC 5
-    g_hardware.GetMorphKnob().Process();             // ADC 6
-    g_hardware.GetPitchKnob().Process();             // ADC 7
-    // Process the remaining ADC-based controls
-    g_hardware.GetDelayMixFeedbackKnob().Process(); // ADC 1
-    g_hardware.GetArpPad().Process();            // Process ADC 8: Arpeggiator Toggle Pad
-    g_hardware.GetModelPrevPad().Process();     // Process ADC 9: Model Select Previous Pad
-    g_hardware.GetModelNextPad().Process();     // Process ADC 10: Model Select Next Pad
-    g_hardware.GetModWheel().Process();          // Process ADC 11: Mod Wheel Control
+    g_hardware.GetCV5Knob().Process();            // ADC 4
+    g_hardware.GetCV6Knob().Process();            // ADC 5
+    g_hardware.GetCV7Knob().Process();            // ADC 6
+    g_hardware.GetPitchKnob().Process();          // ADC 7
+    g_hardware.GetArpPad().Process();             // ADC 8: Arpeggiator Pad
+    g_hardware.GetPrevPad().Process();            // ADC 9: Previous Pad
+    g_hardware.GetNextPad().Process();            // ADC 10: Next Pad
+    g_hardware.GetModWheel().Process();           // ADC 11: Mod Wheel Control
 
     // Read raw values for ALL 12 ADC channels
     auto& hw = g_hardware.GetHardware();
@@ -202,40 +166,31 @@ void ProcessControls() {
 // Moved from AudioProcessor.cpp
 void ReadKnobValues() {
     ControlsManager::ControlSnapshot snapshot{};
-    snapshot.delay_time = g_hardware.GetDelayTimeKnob().Value();                 // ADC 0
-    snapshot.delay_mix_feedback = g_hardware.GetDelayMixFeedbackKnob().Value(); // ADC 1
-    snapshot.env_release = g_hardware.GetEnvReleaseKnob().Value();              // ADC 2
-    snapshot.env_attack = g_hardware.GetEnvAttackKnob().Value();                // ADC 3
-    const float cv5_raw = g_hardware.GetTimbreKnob().Value();                // ADC 4
+    const float cv5_raw = g_hardware.GetCV5Knob().Value();                // ADC 4
     const float cv5 = daisysp::fclamp(cv5_raw, 0.0f, 1.0f);
-    float clouds_position = cv5;
     snapshot.position_knob = cv5_raw;
 
-    const float cv6_raw = g_hardware.GetHarmonicsKnob().Value();              // ADC 5
+    const float cv6_raw = g_hardware.GetCV6Knob().Value();                // ADC 5
     const float cv6 = daisysp::fclamp(cv6_raw, 0.0f, 1.0f);
-    float clouds_density = cv6;
-    float clouds_texture = cv6;
-    float clouds_size    = cv6;
     snapshot.density_knob = cv6_raw;
 
-    const float raw_blend = g_hardware.GetMorphKnob().Value();                  // ADC 6
-    const float blend_value = daisysp::fclamp(1.0f - raw_blend, 0.0f, 1.0f);
-    float clouds_feedback = daisysp::fclamp(blend_value, 0.0f, 0.25f);
-    float clouds_reverb = blend_value >= 0.7f ? 1.0f : (blend_value / 0.7f);
-    float clouds_dry_wet = blend_value;
+    const float raw_cv7 = g_hardware.GetCV7Knob().Value();                // ADC 6
+    const float blend_value = daisysp::fclamp(1.0f - raw_cv7, 0.0f, 1.0f);
+    const float clouds_feedback = daisysp::fclamp(blend_value, 0.0f, 0.25f);
+    const float clouds_reverb = blend_value >= 0.7f ? 1.0f : (blend_value / 0.7f);
     snapshot.blend_knob = blend_value;
 
     const float mod_wheel = g_hardware.GetModWheel().Value();                      // ADC 11
     snapshot.mod_wheel = mod_wheel;
-    float clouds_pitch = daisysp::fclamp((mod_wheel * 2.0f - 1.0f) * 12.0f, -12.0f, 12.0f);
+    const float clouds_pitch = daisysp::fclamp((mod_wheel * 2.0f - 1.0f) * 12.0f, -12.0f, 12.0f);
 
-    snapshot.clouds_position = clouds_position;
-    snapshot.clouds_size = clouds_size;
-    snapshot.clouds_density = clouds_density;
-    snapshot.clouds_texture = clouds_texture;
+    snapshot.clouds_position = cv5;
+    snapshot.clouds_size = blend_value;
+    snapshot.clouds_density = cv6;
+    snapshot.clouds_texture = cv6;
     snapshot.clouds_feedback = clouds_feedback;
     snapshot.clouds_reverb = clouds_reverb;
-    snapshot.clouds_dry_wet = clouds_dry_wet;
+    snapshot.clouds_dry_wet = blend_value;
     snapshot.clouds_pitch = clouds_pitch;
     snapshot.pitch = g_hardware.GetPitchKnob().Value();                         // ADC 7
 

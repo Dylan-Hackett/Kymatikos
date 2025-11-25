@@ -22,11 +22,6 @@
 // NOTE: using namespace directives removed from header to avoid namespace pollution
 // Implementation files (.cpp) should add using namespace as needed locally
 
-// Global Constants
-#define MAX_DELAY_SAMPLES 48000
-// Note: Sample rate is accessed via g_hardware.GetSampleRate()
-
-const float MASTER_VOLUME = 0.7f; // Master output level scaler
 
 
 void AudioCallback(daisy::AudioHandle::InterleavingInputBuffer in, daisy::AudioHandle::InterleavingOutputBuffer out, size_t size);
@@ -38,6 +33,7 @@ void ProcessControls();
 void ReadKnobValues();
 void UpdateEngineSelection();
 void UpdateArpeggiatorToggle();
+void RequestArpGatePulse();
 
 // --- Global Manager Instances ---
 extern HardwareManager g_hardware;

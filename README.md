@@ -32,7 +32,7 @@ Kymatikos
 - MPR121 touch keyboard with LED feedback and pressure sensing
 - CV5 drives Clouds Position & Size together, CV6 drives Density & Texture, CV7 simultaneously controls Dry/Wet, Feedback (capped at 0.75), and Reverb
 - Mod wheel knob sweeps Clouds pitch ±12 semitones independent of CV pitch out
-- Nimbus SM Clouds granular engine with dynamic position, density, and blend control
+- Nimbus SM Clouds looping-delay engine with dynamic position, density, and blend control
 - Arpeggiator timing sourced from the touch pads
 - QSPI execution-in-place firmware with persistent engine storage
 
