@@ -102,6 +102,13 @@ class GranularProcessorClouds
 
     inline bool bypass() const { return bypass_; }
 
+    inline void ToggleReverse()
+    {
+        parameters_.granular.reverse = !parameters_.granular.reverse;
+    }
+
+    inline bool reversed() const { return parameters_.granular.reverse; }
+
     inline void set_playback_mode(PlaybackMode playback_mode)
     {
         playback_mode_ = playback_mode;

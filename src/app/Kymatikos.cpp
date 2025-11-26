@@ -134,6 +134,20 @@ void PollTouchSensor() {
         g_hardware.GetTouchSensor().SetThresholds(6, 3);
     }
     uint16_t touched = g_hardware.GetTouchSensor().Touched();
+    
+    // MPR touch pad to LED index mapping (used in multiple places)
+    static const int kMprToLed[12] = {9, 8, 7, 6, 3, 4, 5, 2, 1, 0, 10, 11};
+    
+    // Diagnostic: print which pad was just pressed and which LED it maps to
+    uint16_t newly_pressed = touched & ~prev_touch_state;
+    if(newly_pressed != 0) {
+        for(int i = 0; i < 12; ++i) {
+            if(newly_pressed & (1 << i)) {
+                g_hardware.GetHardware().PrintLine("PAD: MPR bit %d -> LED index %d", i, kMprToLed[i]);
+            }
+        }
+    }
+    
     // On a new touch, fire a gate pulse
     if(touched != 0 && prev_touch_state == 0) {
         RequestArpGatePulse();
@@ -164,7 +178,7 @@ void PollTouchSensor() {
     bool arp_on = g_controls.GetArpeggiator().IsActive();
     auto* touch_leds = g_hardware.GetTouchLEDs();
     for(int i = 0; i < 12; ++i) {
-        int ledIdx = 11 - i;
+        int ledIdx = kMprToLed[i];
         bool padTouched = (touched & (1 << i)) != 0;
         bool blink = (now - g_controls.GetArpLEDTimestamp(ledIdx)) < ControlsManager::ARP_LED_DURATION_MS;
         bool ledState = arp_on ? blink : (padTouched || blink);

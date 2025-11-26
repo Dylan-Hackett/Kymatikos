@@ -164,10 +164,13 @@ class LoopingSamplePlayer
                     CONSTRAIN(gain, 0.0f, 1.0f);
                 }
                 int32_t delay_int = (buffer->head() - 4 + buffer->size()) << 12;
+                float ph = parameters.granular.reverse
+                               ? loop_duration_ - phase_
+                               : phase_;
                 int32_t position
                     = delay_int
                       - static_cast<int32_t>(
-                          (loop_duration_ - phase_ + loop_point_) * 4096.0f);
+                          (loop_duration_ - ph + loop_point_) * 4096.0f);
                 float l
                     = buffer[0].ReadHermite((position >> 12), position << 4);
                 if(num_channels_ == 1)

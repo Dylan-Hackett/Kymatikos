@@ -62,8 +62,10 @@ void InitializeSynth() {
     g_audio_engine.Init(&g_hardware.GetHardware());
     DebugBlink(3);
 
+    // MPR touch pad to LED index mapping
+    static const int kMprToLed[12] = {9, 8, 7, 6, 3, 4, 5, 2, 1, 0, 10, 11};
     g_controls.GetArpeggiator().SetNoteTriggerCallback([&](int pad_idx){
-        g_controls.SetArpLEDTimestamp(11 - pad_idx, g_hardware.GetHardware().system.GetNow());
+        g_controls.SetArpLEDTimestamp(kMprToLed[pad_idx], g_hardware.GetHardware().system.GetNow());
         RequestArpGatePulse();
         g_hardware.SetPitchCvVoltage(PadIndexToVoltage(pad_idx));
     });
