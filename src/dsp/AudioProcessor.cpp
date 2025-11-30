@@ -114,7 +114,7 @@ void ProcessAudioThroughClouds(AudioHandle::InterleavingInputBuffer in,
 
     g_controls.SetInputPeakLevel(block_peak);
 
-    const float master_vol = g_controls.GetAudioControlSnapshot().clouds_dry_wet;
+    const float master_vol = g_controls.GetAudioControlSnapshot().master_volume;
     for(size_t frame = 0; frame < frame_count; ++frame) {
         const size_t idx = frame * 2;
         float mix = (g_clouds_out[frame].l + g_clouds_out[frame].r) * 0.5f;

@@ -71,7 +71,7 @@ void InitializeSynth() {
     });
     DebugBlink(4);
 
-    g_controls.SetArpEnabled(false);
+    g_controls.SetArpEnabled(true);
 
     g_hardware.GetHardware().StartLog(false); // Start log immediately (non-blocking)
     DebugBlink(5);
@@ -217,6 +217,7 @@ void ReadKnobValues() {
     const float feedback = blend * kMaxFeedback;
     const float reverb = blend * kMaxReverb;
     const float dry_wet = blend * kMaxDryWet;
+    const float master_volume = daisysp::fclamp(powf(blend, 0.45f) * 1.2f, 0.0f, 1.0f);
 
     const float mod_wheel = g_hardware.GetModWheel().Value();
     snapshot.mod_wheel = mod_wheel;
@@ -229,7 +230,11 @@ void ReadKnobValues() {
     snapshot.clouds_reverb = reverb;
     snapshot.clouds_dry_wet = dry_wet;
     snapshot.clouds_pitch = cv6_pitch;
+    snapshot.master_volume = master_volume;
     snapshot.pitch = g_hardware.GetPitchKnob().Value();
 
     g_controls.UpdateControlSnapshot(snapshot);
+
+    // Update arpeggiator tempo from CV5 knob (0-1 range)
+    g_controls.GetArpeggiator().SetMainTempoFromKnob(cv5);
 }

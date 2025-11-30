@@ -20,6 +20,7 @@ public:
         float clouds_reverb = 0.0f;
         float clouds_dry_wet = 1.0f;
         float clouds_pitch = 0.0f;
+        float master_volume = 1.0f;
         float mod_wheel = 0.0f;
     };
 
