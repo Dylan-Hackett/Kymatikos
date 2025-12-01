@@ -167,9 +167,13 @@ void PollTouchSensor() {
             }
         }
     }
-    // Drive pitch CV from touch when arp is inactive; otherwise arpeggiator callback drives CV per step
+    // Drive pitch CV from touch when arp is inactive; only update on change to reduce DAC jitter
+    static int prev_pad_index = -1;
     if(!g_controls.IsArpEnabled() || !g_controls.GetArpeggiator().IsActive()) {
-        g_hardware.SetPitchCvVoltage(PadIndexToVoltage(last_pad_index));
+        if(last_pad_index != prev_pad_index) {
+            g_hardware.SetPitchCvVoltage(PadIndexToVoltage(last_pad_index));
+            prev_pad_index = last_pad_index;
+        }
     }
 
     g_controls.SetCurrentTouchState(touched);

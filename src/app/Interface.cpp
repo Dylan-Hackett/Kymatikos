@@ -217,7 +217,7 @@ void ReadKnobValues() {
     const float feedback = blend * kMaxFeedback;
     const float reverb = blend * kMaxReverb;
     const float dry_wet = blend * kMaxDryWet;
-    const float master_volume = daisysp::fclamp(powf(blend, 0.45f) * 1.2f, 0.0f, 1.0f);
+    const float master_volume = 1.0f;
 
     const float mod_wheel = g_hardware.GetModWheel().Value();
     snapshot.mod_wheel = mod_wheel;
