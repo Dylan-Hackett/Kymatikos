@@ -209,8 +209,8 @@ void ReadKnobValues() {
     const float blend = 1.0f - scaled_cv7;
     snapshot.blend_knob = blend;
 
-    constexpr float kMaxReverb = 0.5f;
-    constexpr float kMaxFeedback = 0.7f;  // More repeats
+    constexpr float kMaxReverb = 0.7f;
+    constexpr float kMaxFeedback = 0.6f;  // More repeats
     const float feedback = blend * kMaxFeedback;
     const float reverb = blend * kMaxReverb;
     const float dry_wet = 0.8f;

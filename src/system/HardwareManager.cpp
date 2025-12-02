@@ -22,8 +22,8 @@ void HardwareManager::InitHardware() {
     // Initialize Daisy Patch SM hardware
     hw_.Init();
 
-    // Run Daisy audio at 48 kHz to match Nimbus SM Clouds processing
-    hw_.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);
+    // Run Daisy audio at 32 kHz for lower latency
+    hw_.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_32KHZ);
     hw_.SetAudioBlockSize(BLOCK_SIZE);
     sample_rate_ = hw_.AudioSampleRate(); // Should report 48000
 
