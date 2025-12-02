@@ -216,7 +216,7 @@ void ReadKnobValues() {
     constexpr float kMaxFeedback = 0.3f;
     const float feedback = blend * kMaxFeedback;
     const float reverb = blend * kMaxReverb;
-    const float dry_wet = blend * kMaxDryWet;
+    const float dry_wet = 1.0f;
     const float master_volume = 1.0f;
 
     const float mod_wheel = g_hardware.GetModWheel().Value();
