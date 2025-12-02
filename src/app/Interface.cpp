@@ -71,7 +71,7 @@ void InitializeSynth() {
     });
     DebugBlink(4);
 
-    g_controls.SetArpEnabled(true);
+    g_controls.SetArpEnabled(false);
 
     g_hardware.GetHardware().StartLog(false); // Start log immediately (non-blocking)
     DebugBlink(5);

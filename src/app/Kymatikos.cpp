@@ -30,6 +30,21 @@ float PadIndexToVoltage(int pad_index)
     return kBaseVoltage + (pitch_offset / 12.0f);
 }
 
+// Continuous version for sliding between pads
+static float PadPositionToVoltage(float pad_pos)
+{
+    pad_pos = daisysp::fclamp(pad_pos, 0.0f, 11.0f);
+    int i0 = static_cast<int>(pad_pos);
+    int i1 = std::min(i0 + 1, 11);
+    float frac = pad_pos - static_cast<float>(i0);
+    constexpr int kCenterPad = 6;
+    constexpr float kBaseVoltage = 2.5f;
+    float pitch0 = kArabicMaqamScale[i0] - kArabicMaqamScale[kCenterPad] - 12.0f;
+    float pitch1 = kArabicMaqamScale[i1] - kArabicMaqamScale[kCenterPad] - 12.0f;
+    float blended = pitch0 * (1.0f - frac) + pitch1 * frac;
+    return kBaseVoltage + (blended / 12.0f);
+}
+
 // Arp gate pulse deadline (ms since boot) for analog gate output
 static std::atomic<uint32_t> g_gate_deadline_ms{0};
 static constexpr uint32_t kGatePulseMs = 10;
@@ -168,13 +183,11 @@ void PollTouchSensor() {
             }
         }
     }
-    // Drive pitch CV from touch when arp is inactive; only update on change to reduce DAC jitter
+    // Drive pitch CV from touch; only update on change to reduce DAC jitter
     static int prev_pad_index = -1;
-    if(!g_controls.IsArpEnabled() || !g_controls.GetArpeggiator().IsActive()) {
-        if(last_pad_index != prev_pad_index) {
-            g_hardware.SetPitchCvVoltage(PadIndexToVoltage(last_pad_index));
-            prev_pad_index = last_pad_index;
-        }
+    if(last_pad_index != prev_pad_index) {
+        g_hardware.SetPitchCvVoltage(PadIndexToVoltage(last_pad_index));
+        prev_pad_index = last_pad_index;
     }
 
     g_controls.SetCurrentTouchState(touched);
@@ -200,6 +213,12 @@ void PollTouchSensor() {
     }
 
     int16_t max_deviation = 0;
+    float weighted_pos = 0.0f;
+    float weight_sum = 0.0f;
+    static float vib_depth = 0.0f;
+    static float prev_slider_pos = 6.0f;
+    constexpr float kTwoPi = 6.283185307f;
+    static float vib_phase = 0.0f;
 
     // Find the maximum deviation from all touched pads
     for (int i = 0; i < 12; i++) {
@@ -208,14 +227,29 @@ void PollTouchSensor() {
             if (deviation > max_deviation) {
                 max_deviation = deviation;
             }
+            if(deviation > 0) {
+                float w = static_cast<float>(deviation);
+                weighted_pos += w * static_cast<float>(i);
+                weight_sum += w;
+            }
         }
     }
 
+    // Estimate continuous pad position from weighted deviations
+    static float slider_pos = 6.0f;
+    if(weight_sum > 1e-3f) {
+        float raw_pos = weighted_pos / weight_sum;
+        // Heavier smoothing for a less sensitive, more spread glide
+        slider_pos = slider_pos * 0.9f + raw_pos * 0.1f;
+    }
+    float slide_delta = fabsf(slider_pos - prev_slider_pos);
+    prev_slider_pos = slider_pos;
+
     // Normalize to 0.0-1.0 range using max deviation (higher = needs more pressure)
-    float sensitivity = 260.0f; // require more pressure to reach full scale
+    float sensitivity = 140.0f;
     float normalized_value = daisysp::fmax(0.0f, daisysp::fmin(1.0f, static_cast<float>(max_deviation) / sensitivity));
-    // Softer response so full-open needs a firm press
-    normalized_value = powf(normalized_value, 1.4f);
+    // Gentler curve for better low-pressure response
+    normalized_value = sqrtf(normalized_value);
 
     float prev_cv = g_controls.GetTouchCVValue();
     float change = fabsf(normalized_value - prev_cv);
@@ -226,6 +260,20 @@ void PollTouchSensor() {
     
     // Output pressure envelope to CV OUT 2 (0-5V)
     g_hardware.SetPressureCvVoltage(pressure_env * 5.0f);
+    
+    // Vibrato depth follows how much the pressure is changing
+    float target_vib = daisysp::fmin(change * 1.2f + slide_delta * 1.0f, 1.0f); // semitone depth cap
+    vib_depth = vib_depth * 0.75f + target_vib * 0.25f;
+    // Keep vibrato running even when pressure is steady
+    vib_phase += kTwoPi * 6.0f * (g_hardware.GetSampleRate() > 0 ? 1.0f / g_hardware.GetSampleRate() : 0.000033f);
+    if(vib_phase > kTwoPi) vib_phase -= kTwoPi;
+    float vib = sinf(vib_phase) * vib_depth; // 6 Hz vibrato
+
+    // Continuous pitch CV regardless of arp state, with vibrato applied
+    float pitch_v = PadPositionToVoltage(slider_pos);
+    pitch_v += vib / 12.0f; // convert semitone vib to volts
+    pitch_v = daisysp::fclamp(pitch_v, 0.0f, 5.0f);
+    g_hardware.SetPitchCvVoltage(pitch_v);
     
     // Debug: show max deviation
     static uint32_t last_dbg = 0;
