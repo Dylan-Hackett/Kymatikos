@@ -225,7 +225,7 @@ void ReadKnobValues() {
     snapshot.clouds_position = cv5;
     snapshot.clouds_size = size;
     snapshot.clouds_density = blend;
-    snapshot.clouds_texture = 0.4f;
+    snapshot.clouds_texture = 0.5f;
     snapshot.clouds_feedback = feedback;
     snapshot.clouds_reverb = reverb;
     snapshot.clouds_dry_wet = dry_wet;

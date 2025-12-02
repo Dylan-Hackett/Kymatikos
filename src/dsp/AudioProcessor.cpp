@@ -118,8 +118,8 @@ void ProcessAudioThroughClouds(AudioHandle::InterleavingInputBuffer in,
     for(size_t frame = 0; frame < frame_count; ++frame) {
         const size_t idx = frame * 2;
         float mix = (g_clouds_out[frame].l + g_clouds_out[frame].r) * 0.5f;
-        out[idx]     = mix * kOutputGain * master_vol;  // L only
-        out[idx + 1] = 0.0f;                            // R silent
+        out[idx]     = mix * kOutputGain * master_vol;
+        out[idx + 1] = 0.0f;
     }
 
     for(size_t frame = frame_count; frame < total_frames; ++frame) {
