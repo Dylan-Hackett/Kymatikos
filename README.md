@@ -56,6 +56,20 @@ Key firmware targets:
 
 Resulting binaries live under `build/` (`kymatikos.elf`, `.bin`, `.hex`).
 
+### Quick Git Push Alias
+
+Use the helper script to stage, commit, and push in one step:
+
+```bash
+./scripts/git-quick-push.sh "commit message"
+```
+
+Optional shell alias (add to your `.zshrc` / `.bashrc`):
+
+```bash
+alias kgp='./scripts/git-quick-push.sh'
+```
+
 ## Code Layout
 - `src/app/` – entry points (`Kymatikos.cpp`, `Interface.cpp`)
 - `src/dsp/` – audio ISR and arpeggiator logic
