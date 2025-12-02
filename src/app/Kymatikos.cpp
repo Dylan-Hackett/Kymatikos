@@ -209,8 +209,8 @@ void PollTouchSensor() {
         }
     }
 
-    // Normalize to 0.0-1.0 range using max deviation
-    float sensitivity = 80.0f;
+    // Normalize to 0.0-1.0 range using max deviation (higher = needs more pressure)
+    float sensitivity = 140.0f;
     float normalized_value = daisysp::fmax(0.0f, daisysp::fmin(1.0f, static_cast<float>(max_deviation) / sensitivity));
     // Gentler curve for better low-pressure response
     normalized_value = sqrtf(normalized_value);
