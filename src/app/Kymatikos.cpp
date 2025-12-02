@@ -192,8 +192,8 @@ void PollTouchSensor() {
 
     static float pressure_env = 0.0f;
     if (touched == 0) {
-        // Let the pressure envelope decay smoothly when released
-        pressure_env *= 0.90f;
+        // Let the pressure value decay smoothly when released
+        pressure_env *= 0.95f;
         g_controls.SetTouchCVValue(pressure_env);
         g_hardware.SetPressureCvVoltage(pressure_env * 5.0f);
         return;
@@ -212,20 +212,16 @@ void PollTouchSensor() {
     }
 
     // Normalize to 0.0-1.0 range using max deviation (higher = needs more pressure)
-    float sensitivity = 180.0f; // require more pressure
+    float sensitivity = 260.0f; // require more pressure to reach full scale
     float normalized_value = daisysp::fmax(0.0f, daisysp::fmin(1.0f, static_cast<float>(max_deviation) / sensitivity));
-    // Softer curve for finer control
-    normalized_value = powf(normalized_value, 1.2f);
+    // Softer response so full-open needs a firm press
+    normalized_value = powf(normalized_value, 1.4f);
 
     float prev_cv = g_controls.GetTouchCVValue();
     float change = fabsf(normalized_value - prev_cv);
-    float smoothing = daisysp::fmax(0.45f, 0.92f - change * 1.2f);
+    float smoothing = daisysp::fmax(0.5f, 0.95f - change * 2.0f);
     float new_cv = prev_cv * smoothing + normalized_value * (1.0f - smoothing);
-    // Envelope shaping: gentler attack, slightly faster decay for control
-    constexpr float attack_coeff = 0.30f;
-    constexpr float decay_coeff  = 0.10f;
-    float coeff = (new_cv > pressure_env) ? attack_coeff : decay_coeff;
-    pressure_env += (new_cv - pressure_env) * coeff;
+    pressure_env = new_cv;
     g_controls.SetTouchCVValue(pressure_env);
     
     // Output pressure envelope to CV OUT 2 (0-5V)
