@@ -190,10 +190,12 @@ void PollTouchSensor() {
         touch_leds[ledIdx].Write(ledState);
     }
 
+    static float pressure_env = 0.0f;
     if (touched == 0) {
-        float decayed = g_controls.GetTouchCVValue() * 0.95f;
-        g_controls.SetTouchCVValue(decayed);
-        g_hardware.SetPressureCvVoltage(0.0f); // 0V when not touching
+        // Let the pressure envelope decay smoothly when released
+        pressure_env *= 0.90f;
+        g_controls.SetTouchCVValue(pressure_env);
+        g_hardware.SetPressureCvVoltage(pressure_env * 5.0f);
         return;
     }
 
@@ -210,19 +212,24 @@ void PollTouchSensor() {
     }
 
     // Normalize to 0.0-1.0 range using max deviation (higher = needs more pressure)
-    float sensitivity = 140.0f;
+    float sensitivity = 180.0f; // require more pressure
     float normalized_value = daisysp::fmax(0.0f, daisysp::fmin(1.0f, static_cast<float>(max_deviation) / sensitivity));
-    // Gentler curve for better low-pressure response
-    normalized_value = sqrtf(normalized_value);
+    // Softer curve for finer control
+    normalized_value = powf(normalized_value, 1.2f);
 
     float prev_cv = g_controls.GetTouchCVValue();
     float change = fabsf(normalized_value - prev_cv);
-    float smoothing = daisysp::fmax(0.5f, 0.95f - change * 2.0f);
+    float smoothing = daisysp::fmax(0.45f, 0.92f - change * 1.2f);
     float new_cv = prev_cv * smoothing + normalized_value * (1.0f - smoothing);
-    g_controls.SetTouchCVValue(new_cv);
+    // Envelope shaping: gentler attack, slightly faster decay for control
+    constexpr float attack_coeff = 0.30f;
+    constexpr float decay_coeff  = 0.10f;
+    float coeff = (new_cv > pressure_env) ? attack_coeff : decay_coeff;
+    pressure_env += (new_cv - pressure_env) * coeff;
+    g_controls.SetTouchCVValue(pressure_env);
     
-    // Output pressure to CV OUT 2 (0-5V)
-    g_hardware.SetPressureCvVoltage(new_cv * 5.0f);
+    // Output pressure envelope to CV OUT 2 (0-5V)
+    g_hardware.SetPressureCvVoltage(pressure_env * 5.0f);
     
     // Debug: show max deviation
     static uint32_t last_dbg = 0;
@@ -235,10 +242,9 @@ void PollTouchSensor() {
 }
 
 int main(void) {
-    // If a bootloader request was persisted, re-enter DFU with infinite timeout
+    // If a bootloader request was persisted, clear it so freshly flashed firmware runs
     if(RTC->BKP0R == kBootloaderMagic) {
-        System::ResetToBootloader(System::BootloaderMode::DAISY_INFINITE_TIMEOUT);
-        while(true) { }
+        RTC->BKP0R = 0;
     }
 
     InitializeSynth();
@@ -266,7 +272,6 @@ int main(void) {
         Bootload();
 
         UpdateDisplay();
-        g_audio_engine.GetCloudsProcessor().Prepare();
 
         // Poll touch sensor every 5 ms (200 Hz)
         if (now - lastPoll >= 5) {

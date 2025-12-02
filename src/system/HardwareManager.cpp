@@ -128,7 +128,9 @@ void HardwareManager::InitGateOutputs() {
 }
 
 void HardwareManager::SetGateOut2(bool state) {
-    gate_out2_.Write(state);
+    // Temporarily disable gate output
+    (void)state;
+    return;
 }
 
 void HardwareManager::SetPitchCvVoltage(float volts) {

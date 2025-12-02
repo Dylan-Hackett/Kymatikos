@@ -56,6 +56,9 @@ void AudioCallback(AudioHandle::InterleavingInputBuffer in,
     // Sync control snapshot from UI thread
     g_controls.SyncAudioControlSnapshot();
 
+    // Prepare Clouds state in the audio thread to avoid races with main loop
+    g_audio_engine.GetCloudsProcessor().Prepare();
+
     // Update arpeggiator state (keyboard logic preserved)
     UpdateArpeggiator();
 
