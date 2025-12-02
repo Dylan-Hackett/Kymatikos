@@ -13,6 +13,7 @@
 #include "HardwareManager.h"
 #include "ControlsManager.h"
 #include "AudioEngine.h"
+#include "stm32h7xx.h"
 
 // Clouds Integration (Nimbus SM port)
 #include "Nimbus_SM/dsp/granular_processor.h"
@@ -42,5 +43,8 @@ extern AudioEngine g_audio_engine;
 
 extern const float kArabicMaqamScale[12];
 float PadIndexToVoltage(int pad_index);
+
+// Backup register magic to persist bootloader requests across resets
+constexpr uint32_t kBootloaderMagic = 0xB007B007;
 
 #endif // KYMATIKOS_H_

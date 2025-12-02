@@ -127,7 +127,7 @@ program-boot:
 .PHONY: program-dfu
 program-dfu: all program-app
 
-.PHONY: flash-stub flash-app program-sram blink-test blink-flash
+.PHONY: flash-stub flash-app program-sram blink-test blink-flash p
 
 # Minimal blink + print test firmware (build only)
 blink-test:
@@ -139,3 +139,7 @@ blink-flash:
 	$(MAKE) clean
 	$(MAKE) BLINK_TEST=1 all
 	$(MAKE) BLINK_TEST=1 program-app
+
+# One-letter shortcut: silent build + program-app
+p:
+	@$(MAKE) -s program-app

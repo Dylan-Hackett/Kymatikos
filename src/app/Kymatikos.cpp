@@ -235,6 +235,12 @@ void PollTouchSensor() {
 }
 
 int main(void) {
+    // If a bootloader request was persisted, re-enter DFU with infinite timeout
+    if(RTC->BKP0R == kBootloaderMagic) {
+        System::ResetToBootloader(System::BootloaderMode::DAISY_INFINITE_TIMEOUT);
+        while(true) { }
+    }
+
     InitializeSynth();
     g_hardware.GetHardware().PrintLine("Kymatikos booted.");
 

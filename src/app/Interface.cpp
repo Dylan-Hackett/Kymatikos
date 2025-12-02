@@ -110,6 +110,8 @@ void Bootload() {
     {
         if(++hold_cnt >= kHoldFrames)
         {
+            // Persist bootloader request across resets and enter DFU indefinitely
+            RTC->BKP0R = kBootloaderMagic;
             g_hardware.GetHardware().PrintLine("Entering Daisy DFU bootloader (ADC combo)…");
             System::Delay(100);
             // Jump to Daisy bootloader and keep it in DFU until a new
@@ -209,11 +211,11 @@ void ReadKnobValues() {
     const float blend = 1.0f - scaled_cv7;
     snapshot.blend_knob = blend;
 
-    constexpr float kMaxReverb = 0.7f;
+    constexpr float kMaxReverb = 0.5f;
     constexpr float kMaxFeedback = 0.6f;  // More repeats
-    const float feedback = blend * kMaxFeedback;
-    const float reverb = blend * kMaxReverb;
-    const float dry_wet = 0.8f;
+    const float feedback = kMaxFeedback;   // lock to max
+    const float reverb = kMaxReverb;       // lock to max
+    const float dry_wet = 0.5f;
     const float master_volume = 1.0f;
 
     const float mod_wheel = g_hardware.GetModWheel().Value();
@@ -222,7 +224,7 @@ void ReadKnobValues() {
     snapshot.clouds_position = cv5;
     snapshot.clouds_size = size;
     snapshot.clouds_density = blend;
-    snapshot.clouds_texture = 0.3f;
+    snapshot.clouds_texture = 0.7f;
     snapshot.clouds_feedback = feedback;
     snapshot.clouds_reverb = reverb;
     snapshot.clouds_dry_wet = dry_wet;

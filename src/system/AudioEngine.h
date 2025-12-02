@@ -25,10 +25,10 @@ public:
 
     // Get Clouds buffers
     uint8_t* GetCloudBuffer() { return cloud_buffer_; }
-    static constexpr size_t CLOUD_BUFFER_SIZE = 356352;  // loop delay storage
+    static constexpr size_t CLOUD_BUFFER_SIZE = 237568;  // loop delay storage (+33%)
 
     uint8_t* GetCloudBufferCCM() { return cloud_buffer_ccm_; }
-    static constexpr size_t CLOUD_BUFFER_CCM_SIZE = 196224;  // 65408 * 3
+    static constexpr size_t CLOUD_BUFFER_CCM_SIZE = 130816;  // (+33%)
 
 private:
     // Clouds processor
