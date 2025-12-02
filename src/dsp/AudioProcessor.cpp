@@ -10,8 +10,8 @@ using namespace daisysp;
 
 namespace
 {
-constexpr float kInputGain = 2.0f;
-constexpr float kOutputGain = 2.0f;
+constexpr float kInputGain = 3.0f;
+constexpr float kOutputGain = 1.0f;
 
 FloatFrame g_clouds_in[BLOCK_SIZE];
 FloatFrame g_clouds_out[BLOCK_SIZE];
