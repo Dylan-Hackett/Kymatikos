@@ -216,7 +216,7 @@ void ReadKnobValues() {
     const float feedback = kMaxFeedback;   // lock to max
     const float reverb = kMaxReverb;       // lock to max
     const float dry_wet = 0.5f;
-    const float master_volume = 1.0f;
+    const float master_volume = 1.2f;
 
     const float mod_wheel = g_hardware.GetModWheel().Value();
     snapshot.mod_wheel = mod_wheel;
