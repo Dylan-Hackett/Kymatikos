@@ -135,3 +135,8 @@ void HardwareManager::SetPitchCvVoltage(float volts) {
     volts = std::max(0.0f, std::min(5.0f, volts));
     hw_.WriteCvOut(daisy::patch_sm::CV_OUT_1, volts);
 }
+
+void HardwareManager::SetPressureCvVoltage(float volts) {
+    volts = std::max(0.0f, std::min(5.0f, volts));
+    hw_.WriteCvOut(daisy::patch_sm::CV_OUT_2, volts);
+}

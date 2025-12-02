@@ -197,8 +197,6 @@ void ReadKnobValues() {
     float cv6 = (cv6_raw - kCV6Min) / (kCV6Max - kCV6Min);
     cv6 = daisysp::fclamp(cv6, 0.0f, 1.0f);
     const float size = cv6;
-    // CV6 also controls Clouds pitch: -12 to +12 semitones
-    const float cv6_pitch = (cv6 * 2.0f - 1.0f) * 12.0f;
     snapshot.density_knob = cv6_raw;
 
     const float raw_cv7 = g_hardware.GetCV7Knob().Value();
@@ -211,12 +209,11 @@ void ReadKnobValues() {
     const float blend = 1.0f - scaled_cv7;
     snapshot.blend_knob = blend;
 
-    constexpr float kMaxReverb = 0.8f;
-    constexpr float kMaxDryWet = 1.0f;
-    constexpr float kMaxFeedback = 0.2f;
+    constexpr float kMaxReverb = 0.5f;
+    constexpr float kMaxFeedback = 0.7f;  // More repeats
     const float feedback = blend * kMaxFeedback;
     const float reverb = blend * kMaxReverb;
-    const float dry_wet = 1.0f;
+    const float dry_wet = 0.8f;
     const float master_volume = 1.0f;
 
     const float mod_wheel = g_hardware.GetModWheel().Value();
@@ -225,11 +222,11 @@ void ReadKnobValues() {
     snapshot.clouds_position = cv5;
     snapshot.clouds_size = size;
     snapshot.clouds_density = blend;
-    snapshot.clouds_texture = 0.5f;
+    snapshot.clouds_texture = 0.3f;
     snapshot.clouds_feedback = feedback;
     snapshot.clouds_reverb = reverb;
     snapshot.clouds_dry_wet = dry_wet;
-    snapshot.clouds_pitch = cv6_pitch;
+    snapshot.clouds_pitch = 0.0f;  // No pitch shift - pass through original
     snapshot.master_volume = master_volume;
     snapshot.pitch = g_hardware.GetPitchKnob().Value();
 

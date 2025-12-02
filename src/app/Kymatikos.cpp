@@ -62,9 +62,10 @@ void UpdateDisplay() {
         int current_engine_idx = g_controls.GetCurrentEngineIndex();
         pos += snprintf(msg + pos, sizeof(msg) - pos, "Engine: %d (%s)\n", current_engine_idx, (current_engine_idx <= 3) ? "Poly-4" : "Mono");
         pos += snprintf(msg + pos, sizeof(msg) - pos, "InLvl: %d\n", static_cast<int>(g_controls.GetInputPeakLevel() * 1000.0f));
-        pos += snprintf(msg + pos, sizeof(msg) - pos, "Touch: %03X (%s)\n",
+        pos += snprintf(msg + pos, sizeof(msg) - pos, "Touch: %03X (%s) Pres:%d\n",
                         g_controls.GetCurrentTouchState(),
-                        g_hardware.IsTouchSensorPresent() ? "OK" : "MISS");
+                        g_hardware.IsTouchSensorPresent() ? "OK" : "MISS",
+                        static_cast<int>(g_controls.GetTouchCVValue() * 1000.0f));
 
         const auto& control_snapshot = g_controls.GetLatestControlSnapshot();
         int cv5 = static_cast<int>(control_snapshot.position_knob * 1000.0f);
@@ -190,45 +191,47 @@ void PollTouchSensor() {
     }
 
     if (touched == 0) {
-        g_controls.SetTouchCVValue(g_controls.GetTouchCVValue() * 0.95f);
+        float decayed = g_controls.GetTouchCVValue() * 0.95f;
+        g_controls.SetTouchCVValue(decayed);
+        g_hardware.SetPressureCvVoltage(0.0f); // 0V when not touching
         return;
     }
 
-    float total_deviation = 0.0f;
-    int touched_count = 0;
+    int16_t max_deviation = 0;
 
-    // Iterate through all pads
+    // Find the maximum deviation from all touched pads
     for (int i = 0; i < 12; i++) {
         if (touched & (1 << i)) {
             int16_t deviation = g_hardware.GetTouchSensor().GetBaselineDeviation(i);
-            total_deviation += deviation;
-            touched_count++;
+            if (deviation > max_deviation) {
+                max_deviation = deviation;
+            }
         }
     }
 
-    float average_deviation = 0.0f;
-    if (touched_count > 0) {
-        average_deviation = total_deviation / touched_count;
-    }
-
-    // Normalize to 0.0-1.0 range with adjustable sensitivity
-    // Consider recalibrating sensitivity if needed for average pressure
-    float sensitivity = 150.0f;
-    float normalized_value = daisysp::fmax(0.0f, daisysp::fmin(1.0f, average_deviation / sensitivity));
-
-    // Apply curve for better control response (squared curve feels more natural)
-    normalized_value = normalized_value * normalized_value;
-
-    // Remove the position component - control is now based purely on average pressure
-    // float position_value = highest_pad / 11.0f; // Removed
-    // float position_weight = 0.7f;              // Removed
-    // float combined_value = position_value * position_weight + normalized_value * (1.0f - position_weight); // Replaced
-    float combined_value = normalized_value; // Use normalized average pressure directly
+    // Normalize to 0.0-1.0 range using max deviation
+    float sensitivity = 80.0f;
+    float normalized_value = daisysp::fmax(0.0f, daisysp::fmin(1.0f, static_cast<float>(max_deviation) / sensitivity));
+    // Gentler curve for better low-pressure response
+    normalized_value = sqrtf(normalized_value);
 
     float prev_cv = g_controls.GetTouchCVValue();
-    float change = fabsf(combined_value - prev_cv);
+    float change = fabsf(normalized_value - prev_cv);
     float smoothing = daisysp::fmax(0.5f, 0.95f - change * 2.0f);
-    g_controls.SetTouchCVValue(prev_cv * smoothing + combined_value * (1.0f - smoothing));
+    float new_cv = prev_cv * smoothing + normalized_value * (1.0f - smoothing);
+    g_controls.SetTouchCVValue(new_cv);
+    
+    // Output pressure to CV OUT 2 (0-5V)
+    g_hardware.SetPressureCvVoltage(new_cv * 5.0f);
+    
+    // Debug: show max deviation
+    static uint32_t last_dbg = 0;
+    if (now - last_dbg > 200) {
+        last_dbg = now;
+        g_hardware.GetHardware().PrintLine("DEV:%d CV:%dmV", 
+            max_deviation,
+            static_cast<int>(new_cv * 5000.0f));
+    }
 }
 
 int main(void) {

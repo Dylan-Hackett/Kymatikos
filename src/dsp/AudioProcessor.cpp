@@ -10,8 +10,8 @@ using namespace daisysp;
 
 namespace
 {
-constexpr float kInputGain = 3.0f;
-constexpr float kOutputGain = 1.8f;
+constexpr float kInputGain = 2.0f;
+constexpr float kOutputGain = 1.0f;
 
 FloatFrame g_clouds_in[BLOCK_SIZE];
 FloatFrame g_clouds_out[BLOCK_SIZE];
@@ -117,8 +117,9 @@ void ProcessAudioThroughClouds(AudioHandle::InterleavingInputBuffer in,
     const float master_vol = g_controls.GetAudioControlSnapshot().master_volume;
     for(size_t frame = 0; frame < frame_count; ++frame) {
         const size_t idx = frame * 2;
-        float mix = (g_clouds_out[frame].l + g_clouds_out[frame].r) * 0.5f;
-        out[idx]     = mix * kOutputGain * master_vol;
+        // Mono output to left channel only
+        float mono = (g_clouds_out[frame].l + g_clouds_out[frame].r) * 0.5f;
+        out[idx]     = mono * kOutputGain * master_vol;
         out[idx + 1] = 0.0f;
     }
 

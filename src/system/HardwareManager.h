@@ -48,6 +48,7 @@ public:
     void SetTouchLEDs(bool state);
     void SetGateOut2(bool state);
     void SetPitchCvVoltage(float volts);
+    void SetPressureCvVoltage(float volts);
 
     // Touch sensor state (returns reference for backward compatibility with assignment)
     bool& IsTouchSensorPresent() { return touch_sensor_present_; }
