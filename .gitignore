@@ -1,0 +1,27 @@
+# Build
+build/
+build*/
+*.o
+*.d
+*.lst
+*.elf
+*.bin
+*.hex
+*.map
+
+# Massive libraries - DO NOT TRACK
+lib/
+eurorack/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Temp
+*.tmp
+*.swp
+*~
+qspi-dump-*.bin

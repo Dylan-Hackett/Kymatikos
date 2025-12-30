@@ -1,0 +1,11 @@
+# Ignore massive library folders that cause indexing timeouts
+lib/
+eurorack/Parasites_SM/stmlib/
+build/
+build*/
+*.bin
+*.o
+*.elf
+*.hex
+*.map
+
