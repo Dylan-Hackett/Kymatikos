@@ -25,9 +25,9 @@ public:
     daisy::AnalogControl& GetNextPad() { return next_pad_; }
     daisy::AnalogControl& GetModWheel() { return mod_wheel_; }
 
-    // CV1-4 as button inputs (+4-5V = pressed)
+    // CV1-4 as button inputs (Patch SM uses inverting op-amps: LOW when pressed)
     daisy::AnalogControl& GetCVBtn(int i) { return cv_btn_[i]; }
-    bool IsCVBtnPressed(int i) { return cv_btn_[i].Value() > 0.85f; }
+    bool IsCVBtnPressed(int i) { return cv_btn_[i].Value() < 0.47f; }  // <47% = pressed (more sensitive)
 
     daisy::GPIO* GetTouchLEDs() { return touch_leds_; }
     daisy::GPIO& GetTouchLED(int index) { return touch_leds_[index]; }

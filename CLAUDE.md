@@ -145,6 +145,28 @@ Audio ISR (BLOCK_SIZE=32 @ 48kHz)
 
 ## Development Guidelines
 
+### CRITICAL: Always Build and Verify Changes
+
+**MANDATORY RULE:** After making ANY code changes requested by the user, you MUST:
+
+1. **Build the project** using `make` or `make program-dfu`
+2. **Verify compilation succeeded** - check for errors/warnings
+3. **Report the build status** to the user explicitly
+4. **If build fails:** Fix compilation errors before considering the task complete
+5. **Never leave broken code** - a change is not complete until it compiles successfully
+
+This applies to ALL code modifications, no matter how small (single line changes, typo fixes, refactors, new features, etc.).
+
+**Example workflow:**
+```bash
+# After editing source files
+make                    # Build and check for errors
+make program-dfu        # Flash to device (if build succeeded)
+# Report results to user
+```
+
+**Why this matters:** Embedded systems have complex build chains with cross-compilation, linker scripts, and hardware-specific dependencies. What looks like a simple change can easily break the build. Always verify before considering a task complete.
+
 ### When Modifying Audio Code
 - Changes to `AudioCallback()` or Nimbus parameters affect real-time performance
 - Monitor CPU load via OLED display or `GetCpuMeter()` – target <80% average

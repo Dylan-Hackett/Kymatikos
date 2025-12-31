@@ -1,0 +1,19 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+	ignorecase = true
+	precomposeunicode = true
+	untrackedCache = true
+	preloadindex = true
+[remote "origin"]
+	url = git@github.com:Dylan-Hackett/Kymatikos.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+[gc]
+	auto = 256
+[core]
+    sparseCheckout = true

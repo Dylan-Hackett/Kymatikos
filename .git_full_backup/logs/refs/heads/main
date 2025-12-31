@@ -1,0 +1,33 @@
+0000000000000000000000000000000000000000 a9a925ca66d5002db0575f630f60b29dd11b5611 dhack94 <dhack94@yahoo.com> 1761273997 -0400	commit (initial): Initial commit: import Kymatikos (Thaumazein) project
+a9a925ca66d5002db0575f630f60b29dd11b5611 61681a0dd8c0b12ef94afe0bcd813bc727c64874 dhack94 <dhack94@yahoo.com> 1761275073 -0400	commit: README: add repo link + quick start; fix C++14 inline; remove stray infrasonic ns; build libs before program-dfu
+61681a0dd8c0b12ef94afe0bcd813bc727c64874 dd9ea60cabe57b2ad08b9f5a140853e50f0d2753 dhack94 <dhack94@yahoo.com> 1761275846 -0400	commit: Rename Thaumazein -> Kymatikos across project (files, includes, Makefile)
+dd9ea60cabe57b2ad08b9f5a140853e50f0d2753 6e7c0fe6b31fd7acb1a4c33eff35f958680c70d7 dhack94 <dhack94@yahoo.com> 1761277043 -0400	commit: Rename core module to system
+6e7c0fe6b31fd7acb1a4c33eff35f958680c70d7 adcbafcf02abb9cee5abe5b04310d7bb86c6ce79 dhack94 <dhack94@yahoo.com> 1761277266 -0400	commit: refresh readme
+adcbafcf02abb9cee5abe5b04310d7bb86c6ce79 41249b327169a618a19854136a7e6053eebda421 dhack94 <dhack94@yahoo.com> 1763870853 -0500	commit: Refine Clouds control mapping and revert to granular engine
+41249b327169a618a19854136a7e6053eebda421 90e35091b8e64d4540c119abeb82cfb84c375437 dhack94 <dhack94@yahoo.com> 1763871949 -0500	commit: Improve Clouds input and size mapping
+90e35091b8e64d4540c119abeb82cfb84c375437 2fce7e2c1f835dd75c563f38755bd9a7f0b6255a dhack94 <dhack94@yahoo.com> 1764045268 -0500	commit: Refine control sync and clean logging
+2fce7e2c1f835dd75c563f38755bd9a7f0b6255a b3b583526788d813f8c7787c8ce6ced6b03b4ec9 dhack94 <dhack94@yahoo.com> 1764047741 -0500	commit: Retune knob mapping and double delay buffer
+b3b583526788d813f8c7787c8ce6ced6b03b4ec9 40b0e6196c0631cfcc8c312609f0c07ef004ea5f dhack94 <dhack94@yahoo.com> 1764049709 -0500	commit: Adjust CV mapping and gain
+40b0e6196c0631cfcc8c312609f0c07ef004ea5f ebf8cbb421a574718bda2448f3a4eaac7e558df7 dhack94 <dhack94@yahoo.com> 1764053977 -0500	commit: Fix CV7 blend knob scaling and halve delay buffer
+ebf8cbb421a574718bda2448f3a4eaac7e558df7 96e4b60f77dc9b5d0375ccb40eb331fcd24bb03d dhack94 <dhack94@yahoo.com> 1764059610 -0500	commit: Fix CV scaling and looping delay pitch
+96e4b60f77dc9b5d0375ccb40eb331fcd24bb03d e8ab90ed9d37a9232d5742f46d591217c2a03665 dhack94 <dhack94@yahoo.com> 1764138371 -0500	commit: Add reverse looping delay and fix MPR-to-LED mapping
+e8ab90ed9d37a9232d5742f46d591217c2a03665 e731a9154ef02d87cc38464080cecad527b825e7 dhack94 <dhack94@yahoo.com> 1764479314 -0500	commit: Clean up control mappings and remove unused knobs
+e731a9154ef02d87cc38464080cecad527b825e7 f2f310897dc064fa85322df616fb81e0686aec0d dhack94 <dhack94@yahoo.com> 1764564133 -0500	commit: Boost output level and reduce pitch CV jitter
+f2f310897dc064fa85322df616fb81e0686aec0d e28e215e4f972508952b1f4720219b2d18b56854 dhack94 <dhack94@yahoo.com> 1764646978 -0500	commit: Lower output gain to tame wet noise floor
+e28e215e4f972508952b1f4720219b2d18b56854 5f640db6b7b79de5dace73599279554a137f374e dhack94 <dhack94@yahoo.com> 1764647027 -0500	commit: Add git quick push helper script
+5f640db6b7b79de5dace73599279554a137f374e 1f81a5ff1c636ae3e6a1d90dee2549fead0d4e83 dhack94 <dhack94@yahoo.com> 1764647225 -0500	commit: klk
+1f81a5ff1c636ae3e6a1d90dee2549fead0d4e83 8011750527a2bf5c61bf0fbbca36750ca3af1054 dhack94 <dhack94@yahoo.com> 1764648151 -0500	commit: texture change
+8011750527a2bf5c61bf0fbbca36750ca3af1054 d61430fda2154ed884c0227297c40237d4de720c dhack94 <dhack94@yahoo.com> 1764648200 -0500	commit: texture change
+d61430fda2154ed884c0227297c40237d4de720c 5f193b1ef4cae46b7d8889da3601e4cea8d5f7ab dhack94 <dhack94@yahoo.com> 1764648792 -0500	commit: noise fix
+5f193b1ef4cae46b7d8889da3601e4cea8d5f7ab bce6d88fe78c9bd6b330b1d48c8630893f38c75d dhack94 <dhack94@yahoo.com> 1764649742 -0500	commit: noise fix 2
+bce6d88fe78c9bd6b330b1d48c8630893f38c75d 325455f830eac22be900e9065ca31d1547f6b3d5 dhack94 <dhack94@yahoo.com> 1764654116 -0500	commit: fold cv pressure
+325455f830eac22be900e9065ca31d1547f6b3d5 844e8b5c232a2be3d5de4558eabbe76a99eb29a4 dhack94 <dhack94@yahoo.com> 1764654488 -0500	commit: fold cv pressure fixed
+844e8b5c232a2be3d5de4558eabbe76a99eb29a4 ec7052ad2c09240a09af61785a75452fdb48ee8e dhack94 <dhack94@yahoo.com> 1764656142 -0500	commit: lll
+ec7052ad2c09240a09af61785a75452fdb48ee8e 2f33e74e9981449ec896dc1b4d1d1011f9509163 dhack94 <dhack94@yahoo.com> 1764706905 -0500	commit: noise fix
+2f33e74e9981449ec896dc1b4d1d1011f9509163 1440f7140049de244f92604110cbb7e1a34e8640 dhack94 <dhack94@yahoo.com> 1764710726 -0500	commit: latest
+1440f7140049de244f92604110cbb7e1a34e8640 1837877ff9cb5f6a82d29365224bde9502e890af dhack94 <dhack94@yahoo.com> 1764713077 -0500	commit: vca cv
+1837877ff9cb5f6a82d29365224bde9502e890af 05ead08f46ca56b2550a93f74c45885bc28f530b dhack94 <dhack94@yahoo.com> 1764714608 -0500	commit: good eneough
+05ead08f46ca56b2550a93f74c45885bc28f530b f041b1dac3be2622a3cad7e3e2bdcbaff5ef54e6 dhack94 <dhack94@yahoo.com> 1764715956 -0500	commit: trautpitch
+f041b1dac3be2622a3cad7e3e2bdcbaff5ef54e6 855ed7e599a272b4922e7ee753ab13d5d48729b9 dhack94 <dhack94@yahoo.com> 1766107924 -0500	commit: flatten src
+855ed7e599a272b4922e7ee753ab13d5d48729b9 8cce326853fd7d2f0229fdd4146734c5052d09e1 dhack94 <dhack94@yahoo.com> 1766124258 -0500	commit: correction
+8cce326853fd7d2f0229fdd4146734c5052d09e1 685e939c1cc98116468bd90a7f87f477ae80f257 dhack94 <dhack94@yahoo.com> 1766821436 -0500	commit: gain update

@@ -11,7 +11,7 @@ using namespace daisysp;
 
 namespace {
 constexpr float kInputGain = 1.0f;
-constexpr float kOutputGain = 1.0f;
+constexpr float kOutputGain = 1.3f;  // 30% volume boost
 constexpr size_t CLOUD_BUF_SIZE = 356352;
 constexpr size_t CLOUD_CCM_SIZE = 196224;
 
