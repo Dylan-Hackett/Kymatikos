@@ -2,13 +2,6 @@
 
 Kymatikos is an analog West Coast synthesizer with digital control and FX processing. At its heart is a pure analog signal path employing classic West Coast techniques—voltage-controlled waveshaping, subharmonic generation, and lowpass gating—all orchestrated by a Daisy Patch SM microcontroller acting as the instrument's digital brain. The Daisy manages a capacitive touch keyboard, sends CV to the analog voice architecture, and processes the final audio through a granular/delay FX engine (Nimbus SM port of Mutable Instruments Clouds). This hybrid approach preserves the character of analog synthesis while leveraging digital precision for gesture capture, modulation routing, and temporal effects.
 
-## Overview
-- Daisy Patch SM core with QSPI boot staging for fast iteration.
-- Nimbus SM Clouds engine (GranularProcessorClouds) replaces the legacy Parasites code so the DSP runs at the native 48 kHz Daisy rate.
-- Hardware manager wraps touch, LEDs, CV IO, and CPU metering while the audio engine owns Clouds buffers and lifecycle.
-
-## Vulgaris Kymatikos Abstract
-Vulgaris Kymatikos is a hybrid analog/digital touch synthesizer. The user interface (copper pads above the keys) and FX audio processing are controlled digitally by the microcontroller. This is the digital brain of the synth: it sends and receives analog voltages while running FX processing and the keyboard/UI logic at the same time.
 
 Kymatikos contains:
 - Triangle core VCO
@@ -19,27 +12,6 @@ Kymatikos contains:
 - Resonant filter
 - Granular synthesis/delay engine with reverb
 - Fully analog audio path pre-FX
-
-## Current Tasks
-- [ ] Dial in Nimbus parameter scaling (density/texture) for the touch pads.
-- [ ] Surface playback-mode selection and status messaging on the OLED.
-- [ ] Add regression tests or capture scripts to verify Nimbus output blocks at 48 kHz.
-
-## Codebase Diagram
-```text
-Kymatikos
-├─ src/
-│  ├─ app/         # Entry points + UI/ARP glue
-│  ├─ dsp/         # Audio ISR, Nimbus parameter mapping
-│  ├─ system/      # Hardware, controls, audio engine
-│  └─ platform/    # MPR121 + persistent state
-├─ eurorack/
-│  └─ Nimbus_SM/   # Ported Clouds engine, resources, DSP
-├─ lib/
-│  ├─ libdaisy/    # Hardware abstraction + startup
-│  └─ DaisySP/     # Supplemental DSP blocks
-└─ build/          # Compiled artifacts (elf/bin/hex)
-```
 
 ## Features
 - MPR121 touch keyboard with LED feedback and pressure sensing
