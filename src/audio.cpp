@@ -11,7 +11,7 @@ using namespace daisysp;
 
 namespace {
 constexpr float kInputGain = 1.0f;
-constexpr float kOutputGain = 1.3f;  // 30% volume boost
+constexpr float kOutputGain = 1.0f;
 constexpr size_t CLOUD_BUF_SIZE = 356352;
 constexpr size_t CLOUD_CCM_SIZE = 196224;
 
@@ -90,8 +90,12 @@ void AudioCallback(AudioHandle::InterleavingInputBuffer in,
     g_controls.SetInputPeakLevel(block_peak);
 
     const float vol = g_controls.GetAudioControlSnapshot().master_volume;
+    static float lpf_state = 0.0f;
+    constexpr float kLpfCoeff = 0.27f;  // ~10kHz cutoff at 48kHz SR
     for(size_t f = 0; f < frame_count; ++f) {
-        out[f * 2] = g_clouds_out[f].l * kOutputGain * vol;
+        float sample = g_clouds_out[f].l * kOutputGain * vol;
+        lpf_state = kLpfCoeff * lpf_state + (1.0f - kLpfCoeff) * sample;
+        out[f * 2] = lpf_state;
         out[f * 2 + 1] = 0.0f;
     }
     for(size_t f = frame_count; f < total_frames; ++f) {

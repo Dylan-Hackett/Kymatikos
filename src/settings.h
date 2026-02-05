@@ -6,4 +6,3 @@
 constexpr std::size_t BLOCK_SIZE = 32;
 
 #endif // SETTINGS_H
-

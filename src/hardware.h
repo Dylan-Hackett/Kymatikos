@@ -19,7 +19,7 @@ public:
     daisy::AnalogControl& GetCV5Knob() { return cv5_knob_; }
     daisy::AnalogControl& GetCV6Knob() { return cv6_knob_; }
     daisy::AnalogControl& GetCV7Knob() { return cv7_knob_; }
-    daisy::AnalogControl& GetPitchKnob() { return pitch_knob_; }
+    daisy::AnalogControl& GetFSR() { return fsr_; }
     daisy::AnalogControl& GetArpPad() { return arp_pad_; }
     daisy::AnalogControl& GetPrevPad() { return prev_pad_; }
     daisy::AnalogControl& GetNextPad() { return next_pad_; }
@@ -47,7 +47,7 @@ private:
     daisy::AnalogControl cv5_knob_;
     daisy::AnalogControl cv6_knob_;
     daisy::AnalogControl cv7_knob_;
-    daisy::AnalogControl pitch_knob_;
+    daisy::AnalogControl fsr_;  // FSR on CV8
     daisy::AnalogControl arp_pad_;
     daisy::AnalogControl prev_pad_;
     daisy::AnalogControl next_pad_;

@@ -4,7 +4,7 @@
 
 bool kymatikos_hal::Mpr121::Init(const kymatikos_hal::Mpr121::Config& config)
 {
-    i2c_address_ = config.i2c_address << 1;
+    i2c_address_ = config.i2c_address;
 
     i2c_handle_.Init(config.i2c_config);
     transport_error_ = false; 
@@ -141,4 +141,3 @@ void kymatikos_hal::Mpr121::WriteRegister(uint8_t reg, uint8_t value)
 bool kymatikos_hal::Mpr121::HasError() const { return transport_error_; }
 
 void kymatikos_hal::Mpr121::ClearError() { transport_error_ = false; }
-

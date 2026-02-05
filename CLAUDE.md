@@ -21,11 +21,11 @@ make -C lib/libdaisy -j8
 make -C lib/DaisySP -j8
 
 # Build application
-make                # Outputs to build/ directory
+make -j8            # Outputs to build/ directory (parallel build)
 
 # Flash workflow (QSPI boot architecture)
-make flash-stub     # Flash minimal boot stub to internal flash (one-time)
-make program-dfu    # Build + flash application to QSPI memory
+make flash-stub        # Flash minimal boot stub to internal flash (one-time)
+make -j8 program-dfu   # Build + flash application to QSPI memory
 make p              # Quick shorthand for program-app (flash only, no rebuild)
 
 # Advanced targets
@@ -36,7 +36,7 @@ make clean          # Clean build artifacts
 ### Important Build Notes
 - This project uses **QSPI execution-in-place** (APP_TYPE=BOOT_QSPI) – the main firmware runs from external QSPI flash at address 0x90040000
 - The boot stub in internal flash must be flashed once with `make flash-stub`
-- Normal iteration uses `make program-dfu` to rebuild and flash the QSPI application
+- Normal iteration uses `make -j8 program-dfu` to rebuild and flash the QSPI application
 - BLOCK_SIZE is 32 samples (defined in [src/settings.h](src/settings.h))
 - Sample rate: 48 kHz
 - Optimization: `-Os` (size-optimized)

@@ -12,6 +12,7 @@ HardwareManager::HardwareManager()
 void HardwareManager::Init() {
     InitHardware();
     InitADCs();
+    System::Delay(100);  // Give MPR121 time to power up
     InitTouchSensor();
     InitLEDs();
     InitGateOutputs();
@@ -19,7 +20,10 @@ void HardwareManager::Init() {
 
 void HardwareManager::InitHardware() {
     hw_.Init();
-    hw_.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_32KHZ);
+    hw_.StartLog(false);  // Don't block boot on USB serial
+    System::Delay(50);    // Short delay for USB init
+    hw_.PrintLine("=== Kymatikos Init ===");
+    hw_.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);
     hw_.SetAudioBlockSize(BLOCK_SIZE);
     sample_rate_ = hw_.AudioSampleRate();
     cpu_meter_.Init(sample_rate_, BLOCK_SIZE);
@@ -29,7 +33,7 @@ void HardwareManager::InitADCs() {
     constexpr int kCv5    = CV_5;
     constexpr int kCv6    = CV_6;
     constexpr int kCv7    = CV_7;
-    constexpr int kPitch  = CV_8;
+    constexpr int kFSR    = CV_8;
     constexpr int kArpPad = ADC_9;
     constexpr int kPrev   = ADC_10;
     constexpr int kNext   = ADC_11;
@@ -38,7 +42,7 @@ void HardwareManager::InitADCs() {
     cv5_knob_.Init(hw_.adc.GetPtr(kCv5), sample_rate_);
     cv6_knob_.Init(hw_.adc.GetPtr(kCv6), sample_rate_);
     cv7_knob_.Init(hw_.adc.GetPtr(kCv7), sample_rate_);
-    pitch_knob_.Init(hw_.adc.GetPtr(kPitch), sample_rate_);
+    fsr_.Init(hw_.adc.GetPtr(kFSR), sample_rate_);
     arp_pad_.Init(hw_.adc.GetPtr(kArpPad), sample_rate_);
     prev_pad_.Init(hw_.adc.GetPtr(kPrev), sample_rate_);
     next_pad_.Init(hw_.adc.GetPtr(kNext), sample_rate_);
@@ -137,4 +141,3 @@ void HardwareManager::SetPressureCvVoltage(float volts) {
     volts = std::max(0.0f, std::min(5.0f, volts));
     hw_.WriteCvOut(daisy::patch_sm::CV_OUT_2, volts);
 }
-

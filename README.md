@@ -25,6 +25,10 @@ Kymatikos contains:
 
 Prerequisites: Daisy toolchain (`arm-none-eabi-*`, `make`), `dfu-util`.
 
+Lib versions:
+- `lib/libdaisy` is vendored locally (current changelog shows v8.0.0).
+- `lib/DaisySP` is vendored locally.
+
 ```bash
 git clone git@github.com:Dylan-Hackett/Kymatikos.git
 cd Kymatikos

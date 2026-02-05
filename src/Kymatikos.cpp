@@ -66,38 +66,22 @@ void InitializeSynth() {
 }
 
 void Bootload() {
-    /*
-        Bootloader entry via CV buttons 1-2-3 pressed simultaneously.
-        Require the condition to be held for ~0.5s to avoid false triggers
-        from floating ADC inputs or brief noise at startup.
-    */
-    static uint16_t hold_cnt = 0;
-    const uint16_t kHoldFrames = 500; // 500 * 1 ms ≈ 0.5 s
+    static uint32_t touch_start_time = 0;
+    if(System::GetNow() > 5000) return;  // Only allow bootloader entry in first 5 seconds
 
-    // Skip bootloader combo for first 5 seconds after power-up to avoid
-    // false triggers from floating ADC inputs while they settle.
-    if(System::GetNow() < 5000)
-        return;
+    uint16_t touched = g_controls.GetCurrentTouchState();
 
-    bool combo_pressed = g_hardware.IsCVBtnPressed(0) &&  // CV1
-                         g_hardware.IsCVBtnPressed(1) &&  // CV2
-                         g_hardware.IsCVBtnPressed(2);    // CV3
-
-    if(combo_pressed)
-    {
-        if(++hold_cnt >= kHoldFrames)
-        {
-            g_hardware.GetHardware().PrintLine("Entering DFU bootloader...");
+    if(touched != 0) {
+        if(touch_start_time == 0) {
+            touch_start_time = System::GetNow();
+        } else if(System::GetNow() - touch_start_time >= 500) {
+            RTC->BKP0R = kBootloaderMagic;
+            g_hardware.GetHardware().PrintLine("Entering DFU...");
             System::Delay(100);
-            // Jump to Daisy bootloader and keep it in DFU until a new
-            // image is flashed. This avoids ending up in the STM ROM DFU
-            // which cannot load QSPI apps.
             System::ResetToBootloader(System::BootloaderMode::DAISY_INFINITE_TIMEOUT);
         }
-    }
-    else
-    {
-        hold_cnt = 0; // reset counter when combo released
+    } else {
+        touch_start_time = 0;
     }
 }
 
@@ -127,7 +111,7 @@ void ProcessControls() {
     g_hardware.GetCV5Knob().Process();
     g_hardware.GetCV6Knob().Process();
     g_hardware.GetCV7Knob().Process();
-    g_hardware.GetPitchKnob().Process();
+    g_hardware.GetFSR().Process();
     g_hardware.GetArpPad().Process();
     g_hardware.GetPrevPad().Process();
     g_hardware.GetNextPad().Process();
@@ -153,9 +137,9 @@ void ReadKnobValues() {
     snap.clouds_size = cv6;
     snap.clouds_density = cv7;
     snap.clouds_texture = 0.7f;
-    snap.clouds_feedback = 0.6f;
-    snap.clouds_reverb = 0.5f;
-    snap.clouds_dry_wet = 0.7f;
+    snap.clouds_feedback = 0.62f;
+    snap.clouds_reverb = 0.8f;
+    snap.clouds_dry_wet = 0.9f;
     snap.clouds_pitch = 0.0f;
     snap.master_volume = 1.0f;
 
@@ -164,35 +148,23 @@ void ReadKnobValues() {
 }
 
 void UpdateDisplay() {
-    static uint32_t last_cv_print = 0;
     if (!g_controls.ShouldUpdateDisplay()) return;
-
+    
     int cpu_avg = static_cast<int>(g_hardware.GetCpuMeter().GetAvgCpuLoad() * 100.0f);
     int cpu_max = static_cast<int>(g_hardware.GetCpuMeter().GetMaxCpuLoad() * 100.0f);
     const auto& snap = g_controls.GetLatestControlSnapshot();
-
+    int pressure_mv = static_cast<int>(g_controls.GetTouchCVValue() * 5000.0f);
+    
     g_hardware.GetHardware().PrintLine(
-        "CPU:%d/%d In:%d Touch:%03X Pos:%d Size:%d Dens:%d",
+        "CPU:%d/%d In:%d Touch:%03X Pos:%d Size:%d Dens:%d P:%dmV",
         cpu_avg, cpu_max,
         static_cast<int>(g_controls.GetInputPeakLevel() * 1000.0f),
         g_controls.GetCurrentTouchState(),
         static_cast<int>(snap.clouds_position * 100),
         static_cast<int>(snap.clouds_size * 100),
-        static_cast<int>(snap.clouds_density * 100));
-
-    // Print CV button values every 4 seconds
-    uint32_t now = System::GetNow();
-    if(now - last_cv_print >= 4000) {
-        last_cv_print = now;
-        int cv1 = static_cast<int>(g_hardware.GetCVBtn(0).Value() * 100);
-        int cv2 = static_cast<int>(g_hardware.GetCVBtn(1).Value() * 100);
-        int cv3 = static_cast<int>(g_hardware.GetCVBtn(2).Value() * 100);
-        int cv4 = static_cast<int>(g_hardware.GetCVBtn(3).Value() * 100);
-        g_hardware.GetHardware().PrintLine(
-            "CV1:%d CV2:%d CV3:%d CV4:%d | Thr:<47",
-            cv1, cv2, cv3, cv4);
-    }
-
+        static_cast<int>(snap.clouds_density * 100),
+        pressure_mv);
+    
     g_controls.SetUpdateDisplay(false);
 }
 
@@ -239,10 +211,15 @@ void PollTouchSensor() {
         leds[idx].Write(arp_on ? blink : (pad_on || blink));
     }
 
+    // FSR pressure from CV8 -> CV OUT 2
+    // Patch SM reads 0V as 0.5, +5V as 0.0, so shift and scale for 0-5V input range
+    float fsr_raw = g_hardware.GetFSR().Value();
+    float fsr_val = daisysp::fmax(0.0f, (0.5f - fsr_raw) * 2.0f);
+    g_hardware.SetPressureCvVoltage(fsr_val * 5.0f);
+
     if (touched == 0) {
         pressure_env *= 0.95f;
         g_controls.SetTouchCVValue(pressure_env);
-        g_hardware.SetPressureCvVoltage(pressure_env * 5.0f);
         return;
     }
 
@@ -266,7 +243,6 @@ void PollTouchSensor() {
     float smooth = daisysp::fmax(0.5f, 0.95f - change * 2.0f);
     pressure_env = prev_cv * smooth + norm * (1.0f - smooth);
     g_controls.SetTouchCVValue(pressure_env);
-    g_hardware.SetPressureCvVoltage(pressure_env * 5.0f);
 
     constexpr float kTwoPi = 6.283185307f;
     vib_depth = vib_depth * 0.75f + daisysp::fmin(change * 1.2f + slide_delta, 1.0f) * 0.25f;
@@ -278,7 +254,7 @@ void PollTouchSensor() {
 }
 
 int main(void) {
-    if(RTC->BKP0R == kBootloaderMagic) RTC->BKP0R = 0;
+if(RTC->BKP0R == kBootloaderMagic) RTC->BKP0R = 0;
     InitializeSynth();
 
     uint32_t lastPoll = 0, lastUI = 0;
@@ -287,8 +263,7 @@ int main(void) {
         if (now - lastUI >= 1) { lastUI = now; ProcessControls(); ReadKnobValues(); }
         UpdateLED();
         Bootload();
-        UpdateDisplay();
-        if (now - lastPoll >= 1) { lastPoll = now; PollTouchSensor(); }  // Poll every 1ms instead of 5ms
-        System::Delay(1);
+        //UpdateDisplay();
+        if (now - lastPoll >= 5) { lastPoll = now; PollTouchSensor(); }
     }
 }
