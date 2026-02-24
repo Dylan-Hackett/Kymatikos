@@ -42,7 +42,7 @@ public:
     void UpdateControlSnapshot(const ControlSnapshot& snapshot);
     void SyncAudioControlSnapshot();
     const ControlSnapshot& GetAudioControlSnapshot() const { return audio_snap_; }
-    const ControlSnapshot& GetLatestControlSnapshot() const { return latest_snap_; }
+
 
     bool ShouldUpdateDisplay() const { return update_display_.load(std::memory_order_relaxed); }
     void SetUpdateDisplay(bool v) { update_display_.store(v, std::memory_order_relaxed); }
@@ -69,7 +69,6 @@ private:
 
     ControlSnapshot buffers_[2];
     ControlSnapshot audio_snap_;
-    ControlSnapshot latest_snap_;
     uint8_t read_idx_;
     std::atomic<uint8_t> write_idx_;
 

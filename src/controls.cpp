@@ -17,7 +17,6 @@ ControlsManager::ControlsManager()
     buffers_[0] = ControlSnapshot{};
     buffers_[1] = ControlSnapshot{};
     audio_snap_ = ControlSnapshot{};
-    latest_snap_ = ControlSnapshot{};
 }
 
 void ControlsManager::Init(float sample_rate) {
@@ -28,7 +27,6 @@ void ControlsManager::Init(float sample_rate) {
     read_idx_ = 0;
     write_idx_.store(0, std::memory_order_release);
     audio_snap_ = ControlSnapshot{};
-    latest_snap_ = ControlSnapshot{};
 }
 
 void ControlsManager::SetArpEnabled(bool enabled) {
@@ -45,7 +43,6 @@ void ControlsManager::UpdateControlSnapshot(const ControlSnapshot& snapshot) {
     uint8_t next = cur ^ 1;
     buffers_[next] = snapshot;
     write_idx_.store(next, std::memory_order_release);
-    latest_snap_ = snapshot;
 }
 
 void ControlsManager::SyncAudioControlSnapshot() {

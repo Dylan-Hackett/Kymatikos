@@ -1,9 +1,19 @@
 {
 	"folders": [
-		{
-			"name": "Kymatikos",
-			"path": "."
-		}
-	],
-    "settings": {}
+        {
+            "name": "Kymatikos",
+            "path": "."
+        }
+    ],
+    "settings": {
+        "workbench.editor.openPositioning": "first",
+        "workbench.editor.revealIfOpen": true,
+        "workbench.editor.enablePreview": false,
+        "workbench.editor.enablePreviewFromQuickOpen": false,
+        "workbench.editor.splitInGroupLayout": "default",
+        "workbench.editor.focusRecentEditorAfterClose": true,
+        "workbench.editor.splitOnDragAndDrop": false,
+        "workbench.editor.splitOnClick": false,
+        "workbench.editor.centeredLayoutAutoResize": false
+    }
 }

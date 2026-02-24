@@ -17,6 +17,7 @@ const float kArabicMaqamScale[12] = {
 
 static const int kMprToLed[12] = {9, 8, 7, 6, 3, 4, 5, 2, 1, 0, 10, 11};
 static std::atomic<uint32_t> g_gate_deadline{0};
+static ControlsManager::ControlSnapshot g_last_snap{};
 
 float PadIndexToVoltage(int pad_index) {
     if(pad_index < 0) return 0.0f;
@@ -144,6 +145,7 @@ void ReadKnobValues() {
     snap.master_volume = 1.0f;
 
     g_controls.UpdateControlSnapshot(snap);
+    g_last_snap = snap;
     g_controls.GetArpeggiator().SetMainTempoFromKnob(cv5);
 }
 
@@ -152,7 +154,7 @@ void UpdateDisplay() {
     
     int cpu_avg = static_cast<int>(g_hardware.GetCpuMeter().GetAvgCpuLoad() * 100.0f);
     int cpu_max = static_cast<int>(g_hardware.GetCpuMeter().GetMaxCpuLoad() * 100.0f);
-    const auto& snap = g_controls.GetLatestControlSnapshot();
+    const auto& snap = g_last_snap;
     int pressure_mv = static_cast<int>(g_controls.GetTouchCVValue() * 5000.0f);
     
     g_hardware.GetHardware().PrintLine(
